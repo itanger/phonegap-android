@@ -1,0 +1,140 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+  "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+  <head>
+    <meta name="viewport" content="width=320; user-scalable=no" />
+    <meta http-equiv="Content-type" content="text/html; charset=utf-8">
+    <title>PhoneGap</title>
+	  <link rel="stylesheet" href="master.css" type="text/css" media="screen" title="no title" charset="utf-8">
+	  <script type="text/javascript" charset="utf-8" src="phonegap.js"></script>	  
+	  <script type="text/javascript" charset="utf-8" src="BodiCamera.js"></script>	  
+	  <script type="text/javascript" charset="utf-8"><!--
+
+    function requestFeatureSuccess(suc)
+    {
+        window.confirm(suc);
+    }  
+    function requestFeatureFail(fail)
+    {
+        window.confirm(fail);
+    }     
+    var featureCameraAvailable = function() {
+    	bondi.camera.requestFeature(requestFeatureSuccess, requestFeatureFail, "takePicture");
+    }
+ 
+	    
+    var getListOfCameras = function(){
+	    navigator.notification.beep(2);
+	    bondi.cameraManager.getCameras(null, null);
+    }
+	
+  	var setCameraFeature = function(){  	  	
+  		bondi.camera.setFeature(1,33);
+  	}
+	
+    
+	var preventBehavior = function(e) { 
+      e.preventDefault(); 
+    };
+
+    function show_pic()
+    {
+      var viewport = document.getElementById('viewport');
+      viewport.style.display = "";
+      bondi.camera.getPicture(dump_pic, fail, { quality: 50 }); 
+    }
+    function show_pic2()
+    {
+      var viewport = document.getElementById('viewport');
+      viewport.style.display = "";
+      window.confirm("show_pic2");
+      window.confirm("navigator:" + navigator);
+      window.confirm("camera:" + bondi.camera);
+//      window.confirm("bondi.cameraManager:" + bondi.camera);
+//      window.confirm("bondi.cameraManager.cams:" + navigator.bondi.camera.cams);
+//      window.confirm("bondi.cameraManager.cams[0]:" + bondi.cameraManager.cams[0]);
+      window.confirm("navigator.bondicamera.takePicture:" + bondi.camera.takePicture);
+      bondi.camera.takePicture(dump_pic3, fail, { quality: 50 });
+
+    }
+
+    function dump_pic(data)
+    {
+      var viewport = document.getElementById('viewport');
+      console.log(data);
+      viewport.style.display = "";
+      viewport.style.position = "absolute";
+      viewport.style.top = "10px";
+      viewport.style.left = "10px";
+      document.getElementById("test_img").src = "data:image/jpeg;base64," + data;
+    }
+    
+    function dump_pic2(data, data2)
+    {
+      var viewport = document.getElementById('viewport');
+      console.log(data);
+      console.log(data2);
+      viewport.style.display = "";
+      viewport.style.position = "absolute";
+      viewport.style.bottom = "0px";
+      viewport.style.left = "0px";
+      if (data2 != null) {
+      	//window.confirm("data2=" + data2);
+      	document.getElementById("test_img").src = data2;
+      } else {
+    	  document.getElementById("test_img").src = "";
+      }
+    }
+    function dump_pic3(data)
+    {
+      var viewport = document.getElementById('viewport');
+      viewport.style.display = "";
+      viewport.style.position = "absolute";
+      viewport.style.bottom = "0px";
+      viewport.style.left = "0px";
+	  document.getElementById("test_img").src = data;
+    }    
+
+    function close()
+    {
+      var viewport = document.getElementById('viewport');
+      viewport.style.position = "relative";
+      viewport.style.display = "none";
+    }
+
+    function fail(fail)
+    {
+    	console.log(data);
+        alert(fail);
+    }
+
+  	// This is just to do this.
+  	function readFile()
+  	{  	
+  		bondi.filesystem.read('/sdcard/phonegap.txt', fail , fail);
+  	}
+
+  	function writeFile()
+  	{
+  		bondi.filesystem.write('foo.txt', "This is a test of writing to a file", fail, fail);
+  	}
+  	
+	function init(){
+		document.addEventListener("touchmove", preventBehavior, false);
+		document.addEventListener("deviceReady", deviceInfo, true);		
+	}
+	
+  --></script>
+  </head>
+  <body onload="init();" id="stage" class="theme">
+    <h1>Welcome to BONDI Camera Test!</h1>
+	<h2>Several Test methods</h2>
+    <a href="#" class="btn large" onclick="featureCameraAvailable();">featureCameraAvailable</a>
+    <a href="#" class="btn large" onclick="setCameraFeature();">SetCameraFeature</a>
+    <!-- a href="#" class="btn large" onclick="show_pic();">Get a Picture</a-->
+    <a href="#" class="btn large" onclick="show_pic2();">Get a BONDI picture</a>
+    <div id="viewport" class="viewport" style="display: none;">       
+      <img id="test_img" style="width:160px; height:120px%"src="" />
+    </div> 
+  </body>
+</html>

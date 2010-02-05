@@ -22,6 +22,8 @@ public class GeoListener {
 		id = i;
 		interval = time;
 		mCtx = ctx;
+		
+		// BEGIN MERGE BLOCK
 		mGps = null;
 		mNetwork = null;
 		mLocMan = (LocationManager) mCtx.getSystemService(Context.LOCATION_SERVICE);
@@ -30,30 +32,41 @@ public class GeoListener {
 			mGps = new GpsListener(mCtx, interval, this);
 		if (mLocMan.getProvider(LocationManager.NETWORK_PROVIDER) != null)
 			mNetwork = new NetworkListener(mCtx, interval, this);
+        //mGps = new GpsListener(mCtx, interval, this);
+        //mNetwork = new NetworkListener(mCtx, interval, this);
+        // END MERGE BLOCK
+        
         mAppView = appView;
 	}
 	
 	void success(Location loc)
 	{
-		/*
-		 * We only need to figure out what we do when we succeed!
-		 */
 		
 		String params; 
 		/*
 		 * Build the giant string to send back to Javascript!
 		 */
-		params = loc.getLatitude() + "," + loc.getLongitude() + ", " + loc.getAltitude() + "," + loc.getAccuracy() + "," + loc.getBearing();
+		
+		/*
+		 * altitudeAccuracy is constant as this value isn't supported by the Android.location.Location class
+		 */
+		String altitudeAccuracy = "-1";
+		
+		params = loc.getLatitude() + "," + loc.getLongitude() + ", " + loc.getAltitude() + "," + loc.getAccuracy() + "," + altitudeAccuracy +  "," + loc.getBearing();
 		params += "," + loc.getSpeed() + "," + loc.getTime();
 		if(id != "global")
 		{
 			mAppView.loadUrl("javascript:navigator.geolocation.success(" + id + "," +  params + ")");
-		}		
+		}
+		else
+		{
+			mAppView.loadUrl("javascript:navigator.geolocation.gotCurrentPosition(" + params + ")");
+			this.stop();
+		}
 	}
 	
 	void fail()
 	{
-		// Do we need to know why?  How would we handle this?
 		if (id != "global") {
 			mAppView.loadUrl("javascript:navigator.geolocation.fail(" + id + ")");
 		}

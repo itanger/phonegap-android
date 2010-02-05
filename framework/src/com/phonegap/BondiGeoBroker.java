@@ -13,32 +13,22 @@ import android.webkit.WebView;
  * This class only starts and stops various GeoListeners, which consist of a GPS and a Network Listener
  */
 
-public class GeoBroker {
+public class BondiGeoBroker {
     private WebView mAppView;
 	private Context mCtx;
-	private HashMap<String, GeoListener> geoListeners = new HashMap<String, GeoListener>();
+	private HashMap<String, BondiGeoListener> geoListeners = new HashMap<String, BondiGeoListener>();
 	private Location cLoc;
 	private LocationManager mLocMan;
 	
-	public GeoBroker(WebView view, Context ctx)
+	public BondiGeoBroker(WebView view, Context ctx)
 	{
 		mCtx = ctx;
 		mAppView = view;
 	}
 	
-		public void getCurrentLocation()
-	{				
-		GeoListener listener = new GeoListener("global", mCtx, 10000, mAppView);
-		Location loc = listener.getCurrentLocation();
-		String params = loc.getLatitude() + "," + loc.getLongitude() + ", " + loc.getAltitude() + "," + loc.getAccuracy() + "," + loc.getBearing();
-		params += "," + loc.getSpeed() + "," + loc.getTime();
-		mAppView.loadUrl("javascript:navigator.geolocation.gotCurrentPosition(" + params + ")");
-		listener.stop();
-	}
-	
 	public void getCurrentLocation(int time)
 	{
-		GeoListener listener = new GeoListener("global", mCtx, time, mAppView);
+		BondiGeoListener listener = new BondiGeoListener("global", mCtx, time, mAppView);
 	}
 	
 	/**
@@ -64,10 +54,12 @@ public class GeoBroker {
 	 */
 	public String start(final int freq, final String key)
 	{
-		GeoListener listener = new GeoListener(key, mCtx, freq, mAppView);
+		BondiGeoListener listener = new BondiGeoListener(key, mCtx, freq, mAppView);
 		geoListeners.put(key, listener);
 		return key;
 	}
+	
+	
 	
 	/**
 	 * Stop.
@@ -75,7 +67,7 @@ public class GeoBroker {
 	 */
 	public void stop(String key)
 	{
-		GeoListener geo = geoListeners.get(key);
+		BondiGeoListener geo = geoListeners.get(key);
 		geo.stop();
 		geo = null;
 	}

@@ -27,14 +27,10 @@ import java.lang.reflect.Field;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.res.Configuration;
-import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.KeyEvent;
-import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 import android.webkit.JsResult;
@@ -42,39 +38,22 @@ import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebSettings.LayoutAlgorithm;
-import android.widget.LinearLayout;
-import android.os.Build.*;
 
-public class DroidGap extends Activity {
+public class DroidGapLocation extends Activity {
 	
-	private static final String LOG_TAG = "DroidGap";
+	private static final String LOG_TAG = "DroidGapLocation";
 	private WebView appView;
 	private String uri;
 	private PhoneGap gap;
 	private GeoBroker geo;
 	private BondiGeoBroker bondiGeo;
-	private AccelListener accel;
-	private CameraLauncher launcher;
-	private ContactManager mContacts;
-	private FileUtils fs;
 	private NetworkManager netMan;
 	private CompassListener mCompass;
-	private FileSystem mFileSystem;
-	private DeviceStatus mDeviceStatus;
-	private MessageHandler mMessageHandler;
-	
-	
 	
     /** Called when the activity is first created. */
 	@Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        
-        // allow sub classes to do a specific initialization
-        if (this instanceof DroidGap && !this.getClass().equals(DroidGap.class)) {
-        	return;
-        }
-            
         getWindow().requestFeature(Window.FEATURE_NO_TITLE); 
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN,
                 WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN); 
@@ -95,8 +74,6 @@ public class DroidGap extends Activity {
         /* Bind the appView object to the gap class methods */
         bindBrowser(appView);
         
-        
-        
         /* Load a URI from the strings.xml file */
         Class<R.string> c = R.string.class;
         Field f;
@@ -104,7 +81,7 @@ public class DroidGap extends Activity {
         int i = 0;
         
         try {
-          f = c.getField("url");
+          f = c.getField("urlLocationTest");
           i = f.getInt(f);
           this.uri = this.getResources().getString(i);
         } catch (Exception e)
@@ -126,35 +103,16 @@ public class DroidGap extends Activity {
     	gap = new PhoneGap(this, appView);
     	geo = new GeoBroker(appView, this);
     	bondiGeo = new BondiGeoBroker(appView, this);
-    	accel = new AccelListener(this, appView);
-    	launcher = new CameraLauncher(appView, this);
-    	mContacts = new ContactManager(this, appView);
-    	fs = new FileUtils(appView);
     	netMan = new NetworkManager(this, appView);
     	mCompass = new CompassListener(this, appView);
-		mFileSystem = new FileSystem(this, appView);
-		mDeviceStatus = new DeviceStatus(this, appView);
-		mMessageHandler = new MessageHandler(this, appView);
     	
-    	// This creates the new javaScript interfaces for PhoneGap
+    	// This creates the new javascript interfaces for PhoneGap
     	appView.addJavascriptInterface(gap, "DroidGap");
     	appView.addJavascriptInterface(geo, "Geo");
     	appView.addJavascriptInterface(bondiGeo, "bGeo");
-    	appView.addJavascriptInterface(accel, "Accel");
-    	appView.addJavascriptInterface(launcher, "GapCam");
-    	appView.addJavascriptInterface(mContacts, "ContactHook");
-    	appView.addJavascriptInterface(fs, "FileUtil");
     	appView.addJavascriptInterface(netMan, "NetworkManager");
     	appView.addJavascriptInterface(mCompass, "CompassHook");
-    	appView.addJavascriptInterface(mFileSystem, "FileSystem");
-    	appView.addJavascriptInterface(mDeviceStatus, "DStatus");
-    	appView.addJavascriptInterface(mMessageHandler, "mMessageHandler");
     }
-    
-	public void loadUrl(String url)
-	{
-		appView.loadUrl(url);
-	}
         
     /**
      * Provides a hook for calling "alert" from javascript. Useful for
@@ -182,89 +140,10 @@ public class DroidGap extends Activity {
     	
     }
     
-    	    	
-    // This is required to start the camera activity!  It has to come from the previous activity
-    public void startCamera(int quality, int width, int height, int id)
-    {
-    	Intent i = new Intent(this, CameraPreview.class);
-    	i.setAction("android.intent.action.PICK");
-    	i.putExtra("quality", quality);
-    	i.putExtra("width", width);
-    	i.putExtra("height", height);
-    	startActivityForResult(i, id);
-    }
-    // This is required to start the camera activity!  It has to come from the previous activity
-    public void startSetCameraFeature(int featureID, int valueID)
-    {
-    	Intent i = new Intent(this, CameraSetFeature.class);
-    	i.setAction("android.intent.action.PICK");
-    	i.putExtra("featureID", featureID);
-    	i.putExtra("valueID", valueID);
-    	startActivityForResult(i, 0);
-    }
-    
+    	    	    
     protected void onActivityResult(int requestCode, int resultCode, Intent intent)
     {
-    	String data;
-    	String data2;
-    	String error;
     	super.onActivityResult(requestCode, resultCode, intent);
-    	
-        // allow sub classes to do a specific result handling
-        if (this instanceof DroidGap && !this.getClass().equals(DroidGap.class)) {
-        	return;
-        }
-    	
-    	if (".CameraPreview".equals(intent.getComponent().getShortClassName())) {
-    		//System.out.println("CameraPreview detected");
-    		if (resultCode == RESULT_OK)
-        	{
-        		data = intent.getStringExtra("picture");   
-        		data2 = intent.getStringExtra("path"); 
-        		error = intent.getStringExtra("error");
-        		// Send the graphic back to the class that needs it
-        		if (error == null || error.length() == 0) {
-        			launcher.processPicture(data, data2, requestCode);
-        		} else {
-        			launcher.failPicture("Did not complete! reason=" + error, requestCode);
-        		}
-        	}
-        	else
-        	{
-        		launcher.failPicture("Did not complete!", requestCode);
-        	}
-    	}
-    	if (".CameraSetFeature".equals(intent.getComponent().getShortClassName())) {
-    		// do nothing
-    	}
-    	
-    }
-    
-    @Override
-    protected void onResume() {
-    	super.onResume();
-
-    	if (mFileSystem != null) {
-        	// let us receive mount events    		
-    		mFileSystem.registerReceiver();
-    	}
-    }
-    
-    @Override
-    protected void onPause() {
-    	super.onPause();
-
-    	if (mFileSystem != null) {
-        	// unregister as we might get closed    		
-    		mFileSystem.unregisterReceiver();
-    	}
-    	if (mMessageHandler != null){
-    		appView.loadUrl("javascript:bondi.messaging.unsubscribeFromAllSMS()");
-    	}
-    	if (mDeviceStatus != null){
-    		appView.loadUrl("javascript:bondi.devicestatus.clearAllPropertyChange()");
-    	}
-    	
     }
     
 }

@@ -1,5 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <string name="app_name">PhoneGap</string>
-  <string name="go">Snap</string>
+    <string name="app_name">PhoneGap</string>
+<!-- 	<string name="url">file:///android_asset/www/index.html</string> -->
+	<string name="url">file:///android_asset/www/indexBondi.html</string>
+	<string name="urlCameraTest">file:///android_asset/www/test-BondiCamera.html</string>
+	<string name="urlLocationTest">file:///android_asset/www/test-location-W3C.html</string>
+	<string name="urlDeviceStatusTest">file:///android_asset/www/test-device-status.html</string>
+	<string name="urlFileSystemTest">file:///android_asset/www/test-filesystem-W3C.html</string>
+	<string name="urlBondiMessaging">file:///android_asset/www/test-BondiMessaging.html</string>
+	<string name="go">Snap</string>
+	<string name="cancel">Cancel</string>
+	<string name="ok">OK</string>
+	
+	<string name="app_name_bonditest">BondiTest</string>
+	<string name="app_name_CameraTest">BondiCameraTest</string>
+	<string name="app_name_LocationTest">BondiLocationTest</string>
+	<string name="app_name_DeviceStatusTest">BondiDeviceStatusTest</string>
+	<string name="app_name_FileSystemTest">BondiFileSystemTest</string>
+	<string name="app_name_ImageViewer">LastImageViewer</string>
+	<string name="app_name_bondiMessagingTest">BondiMessagingTest</string>
+	<string name="imageStored">Image saved as file: </string>
 </resources>

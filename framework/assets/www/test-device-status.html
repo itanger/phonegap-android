@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script type="text/javascript" src="phonegap.js"></script>
+<script type="text/javascript">
+
+// Get the batteryLevel property of the Battery aspect.
+function testBatteryLevel() {
+	//window.confirm('bondi.devicestatus' + bondi.devicestatus);
+	
+	var batteryLevel = bondi.devicestatus.getPropertyValue({property:"batteryLevel", aspect:"Battery", component:"_default"});
+	alert("The current battery level is: " + batteryLevel);
+}
+
+// list Vocabularies();
+function testListVocabularies() {
+	var vocabularies = bondi.devicestatus.listVocabularies();
+	alert("The list of vocabularies is: " + vocabularies);
+}
+
+// setDefualtVocabularies
+function testSetDefaultVocabulary() {
+	bondi.devicestatus.setDefaultVocabulary("http://bondi.omtp.org/1.0/apis/vocabulary.htm");
+	alert("bondi.devicestatus.setDefaultVocabulary finished");
+}
+
+// listAspects
+function testListAspects() {
+	var aspects = bondi.devicestatus.listAspects();
+	alert("The list of aspects is: " + aspects);
+}
+
+function testListBatteryProperties() {
+	var properties = bondi.devicestatus.listProperties({aspect:"Battery"});
+	alert('testListProperties returned: ' + properties);
+}
+
+function testListOSProperties() {
+	var properties = bondi.devicestatus.listProperties({aspect:"OperatingSystem"});
+	alert('testListProperties returned: ' + properties);
+}
+
+function testGetOsProperties() {
+	try {
+		var version = bondi.devicestatus.getPropertyValue({aspect:"OperatingSystem", property:"version"});
+		var name = bondi.devicestatus.getPropertyValue({aspect:"OperatingSystem", property:"name"});
+		var language = bondi.devicestatus.getPropertyValue({aspect:"OperatingSystem", property:"language"});
+		//var vendor = bondi.devicestatus.getPropertyValue({property:"vendor"});
+		alert('version=' + version + '\nname=' + name + '\nlanguage=' + language);
+	} catch (e) {
+		alert('exception: ' + e + ' =>' + e.message);
+	}
+}
+
+//The above call is equivalent to:
+function testGetPropertyValue01() {
+	var level = bondi.devicestatus.getPropertyValue({property:"batteryLevel"});
+	alert('testGetPropertyValue01 returned: ' + level);
+}
+
+// or
+function testGetPropertyValue02() {
+	var level = bondi.devicestatus.getPropertyValue({property:"batteryLevel", aspect:"Battery"});
+	alert('testGetPropertyValue02 returned: ' + level);
+}
+function testGetPropertyValue03() {
+	var level = bondi.devicestatus.getPropertyValue({property:"batteryLevel", aspect:"Battery", component:"_primary"});
+	alert('testGetPropertyValue03 returned: ' + level);
+}
+
+//set
+function testSetPropertyValue() {
+	try{
+		bondi.devicestatus.setPropertyValue({property:"orientation", aspect:"Display"}, 0);
+		alert('testSetPropertyValue returned');
+	} catch(e){
+		alert(e.message);
+	}
+}
+
+var keys = [];
+
+function testWatchBatteryChange(){
+	var batOptions = {};
+	batOptions.minChangePercent = 5;
+	batOptions.minTimeout = 2000;
+	batOptions.maxTimeout = 5000;
+	batOptions.callCallbackOnRegister = true;
+
+	var lastKey = bondi.devicestatus.watchPropertyChange({aspect:"Battery", property:"batteryLevel", component:"_primary"},
+	{
+		onPropertyChange:function(ref, value) {
+		alert("Property changed: "+ref.property+" "+ref.component+" "+ref.aspect+" "+ref.vocabulary + "\n" + "New Value: " + value);
+		}
+	}, batOptions);
+	keys.push(lastKey);
+}
+
+function testWatchBatteryChange2(){
+	var batOptions = {};
+	//batOptions.minChangePercent = 1;
+	//batOptions.minTimeout = 2000;
+	//batOptions.maxTimeout = 5000;
+	//batOptions.callCallbackOnRegister = true;
+
+	var lastKey = bondi.devicestatus.watchPropertyChange({aspect:"Battery", property:"batteryLevel", component:"_primary"},
+		{
+			onPropertyChange:function(ref, value) {
+			alert("Property changed: "+ref.property+" "+ref.component+" "+ref.aspect+" "+ref.vocabulary + "\n" + "New Value: " + value);
+		}
+	}, batOptions);
+	keys.push(lastKey);
+}
+
+
+
+
+function testWatchOrientationChange(){
+	var lastKey = bondi.devicestatus.watchPropertyChange({aspect:"Display", property:"currentOrientation", options:{minChangePercent:25.0}},
+		{
+			onPropertyChange:function(ref, value) {
+			alert("Property changed: "+ref.property+" "+ref.component+" "+ref.aspect+" "+ref.vocabulary + "\n New value: "+value);
+		}
+	});
+	keys.push(lastKey);
+}
+
+
+function testClearAllPropertyChange(){
+	try{
+		bondi.devicestatus.clearAllPropertyChange();
+	}catch(e){
+		alert("Problem unregistering a listener with key: " + i + " and error: " + e.message);
+	}
+}
+
+	
+/* YYY: comment in
+ * 
+ *//*
+var orientationChangeHandler = bondi.devicestatus.watchPropertyChange({aspect:"display", property:"orientation"},
+{
+onPropertyChange:function(ref, value) {
+alert("Property changed: "+ref.property+" "+ref.component+" "+ref.aspect+" "+ref.vocabulary);
+alert("New value: "+value);
+}
+}, {
+minTimeout:1000,
+callCallbackOnRegister:true
+}
+);
+
+//
+
+function testClearPropertyChange() {
+	bondi.devicestatus.clearPropertyChange(orientationChangeHandler);
+}
+*/
+/**
+//
+ref.aspect = "battery";
+
+//
+ref.vocabulary = BONDI_VOC;
+
+//
+var dpiXProperty = {property:"dpiX"};
+var batteryLevelProperty = {vocabulary:BONDI_VOC, aspect:"battery", component:"default", property:"batteryLevel" };
+*/
+
+		
+
+</script>
+</head>
+<body>
+<h2>Tests for the Device Status.</h2>
+<div id="progress"></div>
+<input type="submit" onclick="testBatteryLevel()" value="testBatteryLevel" /><br></br>
+<input type="submit" onclick="testListBatteryProperties()" value="testListBatteryProperties" /><br></br>
+<input type="submit" onclick="testListOSProperties()" value="testListOSProperties" /><br></br>
+<input type="submit" onclick="testGetOsProperties()" value="testGetOsProperties" /><br></br>
+<input type="submit" onclick="testGetPropertyValue01()" value="testGetPropertyValue with 1 parameter" /><br></br>
+<input type="submit" onclick="testGetPropertyValue02()" value="testGetPropertyValue with 2 parameters" /><br></br>
+<input type="submit" onclick="testGetPropertyValue03()" value="testGetPropertyValue with 3 parameters" /><br></br>
+<input type="submit" onclick="testListVocabularies()" value="testListVocabularies" /><br></br>
+<input type="submit" onclick="testSetDefaultVocabulary()" value="testSetDefaultVocabulary" /><br></br>
+<input type="submit" onclick="testListAspects()" value="testListAspects" /><br></br>
+<input type="submit" onclick="testSetPropertyValue()" value="testSetPropertyValue" /><br></br>
+<input type="submit" onclick="testWatchBatteryChange()" value="testWatchBatteryChange" /><br></br>
+<input type="submit" onclick="testWatchBatteryChange2()" value="testWatchBatteryChangeDefault" /><br></br>
+<input type="submit" onclick="testWatchOrientationChange()" value="testWatchOrientationChange" /><br></br>
+<input type="submit" onclick="testClearAllPropertyChange()" value="testClearAllPropertyChange" /><br></br>
+</body>
+</html>
+
