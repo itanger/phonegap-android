@@ -1,0 +1,96 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+            "http://www.w3.org/TR/html4/loose.dtd">
+
+<html>
+
+
+<head>
+<meta http-equiv=Content-Type content="text/html; charset=us-ascii">
+<title>Creating a new BONDI-Android-Application</title>
+<style type="text/css">
+<!--
+ /* Font Definitions */
+ @font-face
+	{font-family:"MS Mincho";
+	panose-1:2 2 6 9 4 2 5 8 3 4;}
+@font-face
+	{font-family:"\@MS Mincho";
+	panose-1:0 0 0 0 0 0 0 0 0 0;}
+ /* Style Definitions */
+ p.MsoNormal, li.MsoNormal, div.MsoNormal
+	{margin:0cm;
+	margin-bottom:.0001pt;
+	font-size:12.0pt;
+	font-family:"Times New Roman";}
+@page Section1
+	{size:595.3pt 841.9pt;
+	margin:70.85pt 70.85pt 2.0cm 70.85pt;}
+div.Section1
+	{page:Section1;}
+-->
+</style>
+
+</head>
+
+<body lang=DE>
+
+<div class=Section1>
+
+<p class=MsoNormal align=center style='text-align:center'><u><span lang=EN-US>Creating
+a new BONDI-Android-Application</span></u></p>
+
+<p class=MsoNormal><span lang=EN-US>&nbsp;</span></p>
+
+<p class=MsoNormal><span lang=EN-US>The simplest way to create a new BONDI-Android-application
+is to build up the application based on the example-Application.</span></p>
+
+<p class=MsoNormal><span lang=EN-US>&nbsp;</span></p>
+
+<p class=MsoNormal><span lang=EN-US>An application consists of the manifest
+file (</span><i><span style='font-size:8.0pt;font-family:"Courier New";
+color:#2A00FF'>AndroidManifest.xml</span></i><span lang=EN-US>), the initial
+html page (e.g. </span><i><span style='font-size:8.0pt;font-family:"Courier New";
+color:#2A00FF'>assets/www/index.html</span></i><span lang=EN-US>) and the
+resources (icons, labels).</span></p>
+
+<p class=MsoNormal><span lang=EN-US>&nbsp;</span></p>
+
+<p class=MsoNormal><span lang=EN-US>For creating a new application based on the
+example application the following steps are recommended:</span></p>
+
+<p class=MsoNormal><span lang=EN-US>(1)  Create a new html-page that loads
+phonegap.js. The html page is the start page of the application</span></p>
+
+<p class=MsoNormal><span lang=EN-US>(2)  Adapt the manifest file: Define a
+adequate label </span><i><span style='font-size:8.0pt;font-family:"Courier New";
+color:#2A00FF'>android:label=&quot;@string/app_name_bonditest&quot;</span></i><span
+lang=EN-US>and an icon </span><i><span style='font-size:8.0pt;font-family:"Courier New";
+color:#2A00FF'>android:icon=&quot;@drawable/icon</span></i><span lang=EN-US>&quot;.
+As initial activitiy the class </span><i><span style='font-size:8.0pt;
+font-family:"Courier New";color:#2A00FF'>activity
+android:name=&quot;.DroidGap&quot; </span></i><span lang=EN-US>can be used.
+Make sure the permissions are set correctly.</span></p>
+
+<p class=MsoNormal><span lang=EN-US>(3)  The initial html page, loaded by the
+class &quot;DroidGap&quot; is defined in the file &quot;res/values/strings.xml&quot;.
+To change the initially loaded page, the entry </span><i><span
+style='font-size:8.0pt;font-family:"Courier New";color:#2A00FF'>&lt;string
+name=&quot;url&quot;&gt;file:///android_asset/www/indexBondi.html&lt;/string&gt;</span></i>
+<span lang=EN-US>must be changed.</span></p>
+
+<p class=MsoNormal><span lang=EN-US>&nbsp;</span></p>
+
+<p class=MsoNormal><span lang=EN-US>NOTE: The Class DroidGap defines a
+JavaScript-Java-Binding for all objects used by the BONDI-js-functions. The
+JavaScript code required by BONDI is completely provided by the file
+phonegap.js. The have access to the BONDI-functionality it is only necessary to
+include the javascript file phonegap.js </span><i><span style='font-size:8.0pt;
+font-family:"Courier New";color:#2A00FF'>(&lt;script
+type=&quot;text/javascript&quot; charset=&quot;utf-8&quot;
+src=&quot;phonegap.js&quot;&gt;&lt;/script&gt;).</span></i></p>
+
+</div>
+
+</body>
+
+</html>
