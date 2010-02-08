@@ -4,5 +4,3 @@ gen
 assets/www/phonegap.js
 local.properties
 framework/phonegap.jar
-framework/.settings/org.eclipse.jdt.core.prefs
- framework/gen/com/phonegap/R.java
