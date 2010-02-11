@@ -322,15 +322,16 @@ public class CameraPreview extends Activity implements SurfaceHolder.Callback{
         Log.e(TAG, "surfaceCreated");
         mCamera = Camera.open();
         Parameters p = mCamera.getParameters();
-        p.setPreviewSize(176, 144);
-        holder.setFixedSize(176, 144);
+// unComment this to prevent interlacing?     
+//        p.setPreviewSize(176, 144);
+//        holder.setFixedSize(176, 144);
         mCamera.setParameters(p);
-        try {
-			mCamera.setPreviewDisplay(holder);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+//        try {
+//			mCamera.setPreviewDisplay(holder);
+//		} catch (IOException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
         //mCamera.startPreview();
     }
 
