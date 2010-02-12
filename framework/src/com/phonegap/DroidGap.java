@@ -70,8 +70,8 @@ public class DroidGap extends Activity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         
-        // allow sub classes to do a specific initialization
-        if (this instanceof DroidGap && !this.getClass().equals(DroidGap.class)) {
+        // allow only the class DroidGapCameraSub to do a specific initialization
+        if (this.getClass().getSimpleName().equals("DroidGapCamera")) {
         	return;
         }
             
