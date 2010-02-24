@@ -40,15 +40,18 @@ import android.view.WindowManager;
 import android.webkit.JsResult;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
+import android.webkit.WebStorage;
 import android.webkit.WebView;
 import android.webkit.WebSettings.LayoutAlgorithm;
 import android.widget.LinearLayout;
 import android.os.Build.*;
 
+
 public class DroidGap extends Activity {
 	
 	private static final String LOG_TAG = "DroidGap";
 	private WebView appView;
+	private LinearLayout root;
 	private String uri;
 	private PhoneGap gap;
 	private GeoBroker geo;
@@ -62,6 +65,7 @@ public class DroidGap extends Activity {
 	private FileSystem mFileSystem;
 	private DeviceStatus mDeviceStatus;
 	private MessageHandler mMessageHandler;
+	private Storage cupcakeStorage;
 	
 	
 	
@@ -74,44 +78,75 @@ public class DroidGap extends Activity {
         if (this.getClass().getSimpleName().equals("DroidGapCamera")) {
         	return;
         }
-            
+        
         getWindow().requestFeature(Window.FEATURE_NO_TITLE); 
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN,
-                WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN); 
-        setContentView(R.layout.main);        
-         
-        appView = (WebView) findViewById(R.id.appView);
+                WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);
+        // This builds the view. We could probably get away with NOT having a LinearLayout, but I like having a bucket!
+
+        LinearLayout.LayoutParams containerParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.FILL_PARENT,
+        		ViewGroup.LayoutParams.FILL_PARENT, 0.0F);
+
+        LinearLayout.LayoutParams webviewParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.FILL_PARENT,
+        		ViewGroup.LayoutParams.FILL_PARENT, 1.0F);
+
+        root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setBackgroundColor(Color.BLACK);
+        root.setLayoutParams(containerParams);
         
-        /* This changes the setWebChromeClient to log alerts to LogCat!  Important for Javascript Debugging */
+        appView = new WebView(this);
+        appView.setLayoutParams(webviewParams);
         
-        appView.setWebChromeClient(new GapClient(this));
+        WebViewReflect.checkCompatibility();
+        
+        /* This changes the setWebChromeClient to log alerts to LogCat! Important for Javascript Debugging */
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.ECLAIR)
+         appView.setWebChromeClient(new EclairClient(this));
+        else
+        {
+         appView.setWebChromeClient(new GapClient(this));
+        }
+        
         appView.setInitialScale(100);
+        appView.setVerticalScrollBarEnabled(false);
+        
         WebSettings settings = appView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setJavaScriptCanOpenWindowsAutomatically(true);
         settings.setLayoutAlgorithm(LayoutAlgorithm.NORMAL);
-
         
+//             
+//        setContentView(R.layout.main);        
+//         
+//        appView = (WebView) findViewById(R.id.appView);
+        
+        Package pack = this.getClass().getPackage();
+        String appPackage = pack.getName();
+        
+        WebViewReflect.setStorage(settings, true, "/data/data/" + appPackage + "/app_database/");
+
         /* Bind the appView object to the gap class methods */
         bindBrowser(appView);
-        
-        
-        
+        if(cupcakeStorage != null)
+        	cupcakeStorage.setStorage(appPackage);
+
         /* Load a URI from the strings.xml file */
         Class<R.string> c = R.string.class;
         Field f;
-        
         int i = 0;
         
         try {
-          f = c.getField("url");
-          i = f.getInt(f);
-          this.uri = this.getResources().getString(i);
-        } catch (Exception e)
-        {
-          this.uri = "http://www.phonegap.com";
-        }
-        appView.loadUrl(this.uri);
+            f = c.getField("url");
+            i = f.getInt(f);
+            this.uri = this.getResources().getString(i);
+          } catch (Exception e)
+          {
+            this.uri = "http://www.phonegap.com";
+          }
+          appView.loadUrl(this.uri);
+        root.addView(appView);
+        setContentView(root);
         
     }
 	
@@ -149,6 +184,11 @@ public class DroidGap extends Activity {
     	appView.addJavascriptInterface(mFileSystem, "FileSystem");
     	appView.addJavascriptInterface(mDeviceStatus, "DStatus");
     	appView.addJavascriptInterface(mMessageHandler, "mMessageHandler");
+    	if (android.os.Build.VERSION.SDK_INT <= android.os.Build.VERSION_CODES.DONUT)
+    	{
+    		cupcakeStorage = new Storage(appView);
+    		appView.addJavascriptInterface(cupcakeStorage, "droidStorage");
+    	}
     }
     
 	public void loadUrl(String url)
@@ -156,33 +196,112 @@ public class DroidGap extends Activity {
 		appView.loadUrl(url);
 	}
         
-    /**
-     * Provides a hook for calling "alert" from javascript. Useful for
-     * debugging your javascript.
-     */
-    final class GapClient extends WebChromeClient {
-    	
-    	Context mCtx;
-    	GapClient(Context ctx)
-    	{
-    		mCtx = ctx;
-    	}
-    	
-    	@Override
-        public boolean onJsAlert(WebView view, String url, String message, JsResult result) {
-            Log.d(LOG_TAG, message);
-            // This shows the dialog box.  This can be commented out for dev
-            AlertDialog.Builder alertBldr = new AlertDialog.Builder(mCtx);
-            alertBldr.setMessage(message);
-            alertBldr.setTitle("Alert");
-            alertBldr.show();
-            result.confirm();
-            return true;
-        }
-    	
-    }
+	/**
+	 * Provides a hook for calling "alert" from javascript. Useful for
+	 * debugging your javascript.
+	 */
+	public class GapClient extends WebChromeClient {
+
+		Context mCtx;
+		public GapClient(Context ctx)
+		{
+			mCtx = ctx;
+		}
+
+		@Override
+		public boolean onJsAlert(WebView view, String url, String message, JsResult result) {
+			Log.d(LOG_TAG, message);
+			// This shows the dialog box. This can be commented out for dev
+			AlertDialog.Builder alertBldr = new AlertDialog.Builder(mCtx);
+			GapOKDialog okHook = new GapOKDialog();
+			GapCancelDialog cancelHook = new GapCancelDialog();
+			alertBldr.setMessage(message);
+			alertBldr.setTitle("Alert");
+			alertBldr.setCancelable(true);
+			alertBldr.setPositiveButton("OK", okHook);
+			alertBldr.setNegativeButton("Cancel", cancelHook);
+			alertBldr.show();
+			result.confirm();
+			return true;
+		}
+
+		/*
+		 * This is the Code for the OK Button
+		 */
+
+		public class GapOKDialog implements DialogInterface.OnClickListener {
+
+			public void onClick(DialogInterface dialog, int which) {
+				// TODO Auto-generated method stub
+				dialog.dismiss();
+			}
+
+		}
+
+		public class GapCancelDialog implements DialogInterface.OnClickListener {
+
+			public void onClick(DialogInterface dialog, int which) {
+				// TODO Auto-generated method stub
+				dialog.dismiss();
+			}
+
+		}
+
+
+	}
     
-    	    	
+	public final class EclairClient extends GapClient
+	{
+		private long MAX_QUOTA = 2000000;
+
+		public EclairClient(Context ctx) {
+			super(ctx);
+			// TODO Auto-generated constructor stub
+		}
+
+		public void onExceededDatabaseQuota(String url, String databaseIdentifier, long currentQuota, long estimatedSize,
+				long totalUsedQuota, WebStorage.QuotaUpdater quotaUpdater)
+		{
+
+			if( estimatedSize < MAX_QUOTA)
+			{
+				long newQuota = estimatedSize;
+				quotaUpdater.updateQuota(newQuota);
+			}
+			else
+			{
+				// Set the quota to whatever it is and force an error
+				// TODO: get docs on how to handle this properly
+				quotaUpdater.updateQuota(currentQuota);
+			}
+		}
+	}
+    	    
+	
+	public boolean onKeyDown(int keyCode, KeyEvent event)
+	{
+		if (keyCode == KeyEvent.KEYCODE_BACK) {
+			String testUrl = appView.getUrl();
+			appView.goBack();
+			if(appView.getUrl() == testUrl)
+			{
+				return super.onKeyDown(keyCode, event);
+			}
+		}
+
+		if (keyCode == KeyEvent.KEYCODE_MENU)
+		{
+			appView.loadUrl("javascript:keyEvent.menuTrigger()");
+		}
+
+		if (keyCode == KeyEvent.KEYCODE_SEARCH)
+		{
+			appView.loadUrl("javascript:keyEvent.searchTrigger()");
+		}
+
+		return false;
+	}
+	 
     // This is required to start the camera activity!  It has to come from the previous activity
     public void startCamera(int quality, int width, int height, int id)
     {
@@ -265,6 +384,11 @@ public class DroidGap extends Activity {
     		appView.loadUrl("javascript:bondi.devicestatus.clearAllPropertyChange()");
     	}
     	
+    }
+    
+    public WebView getView()
+    {
+    	return this.appView;
     }
     
 }

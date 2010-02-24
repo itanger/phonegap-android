@@ -96,8 +96,8 @@ function testCreateDirectoryAndCopy() {
 			}
 		}
 		if (fileForCopy == null) {
-        	window.confirm("This test requires at least one file in the root directory of the sd card.");
-        	return
+        	window.confirm("This test requires at least one file that ends with .jpg in the root directory of the sd card.");
+        	return;
     	}
 
 		// create the directory
@@ -108,7 +108,7 @@ function testCreateDirectoryAndCopy() {
 		window.confirm('Try to copy ' + fileForCopy.name + ' to ' + b.absolutePath);
 
 		// copy the picture to the new directory
-		fileForCopy.copyTo(function(){alert('copyTo1 successful (ok)');} , function(){alert('copyTo1 failed (fail)');}, b.absolutePath, false);
+		fileForCopy.copyTo(function(){alert('copyTo1 successful (ok)');} , function(errorCode){alert('copyTo1 failed ( ' + errorCode + ')');}, b.absolutePath, false);
 
 		// try to copy again
 		//window.confirm('Try to copy again without overwrite: ' + fileForCopy.name + ' to ' + b.absolutePath);
@@ -188,7 +188,7 @@ function testCreateDirectoryAndMove_part2(docDir,fileToMove,b) {
 		var b3;
 		try {
 			b3 = fileToMove.deleteFile();
-			window.confirm('deleteFile(' + fileToMove.absolutePath + ') result=' + b3 + '(expeced was false)');
+			window.confirm('deleteFile(' + fileToMove.absolutePath + ') result=' + b3 + '(expected was false)');
 		} catch (e) {
 			window.confirm('deleteFile(' + fileToMove.absolutePath + ') threw exception (FAIL)');
 		}
@@ -196,8 +196,8 @@ function testCreateDirectoryAndMove_part2(docDir,fileToMove,b) {
 		// now move the file back
 		var movedFile = bondi.filesystem.resolve(b.absolutePath + '/' + fileToMove.name);
 		
-		var result3 = movedFile.moveTo(function(){alert('moveTo2 and the complete test case successful (ok)');} , function(){alert('moveTo2 failed (fail)');}, docDir.absolutePath, false);
-	
+		var result3 = movedFile.moveTo(function(){alert('moveTo2 and the complete test case successful (ok)');b.deleteDirectory(true);} , function(){alert('moveTo2 failed (fail)');}, docDir.absolutePath, false);
+
     } catch (e) {
     	alert('Exception ' + e + ' in testCreateDirectoryAndCopy_part2');
     }

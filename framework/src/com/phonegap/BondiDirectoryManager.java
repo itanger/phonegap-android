@@ -216,6 +216,7 @@ public class BondiDirectoryManager {
 		InputStream in = null;
 		OutputStream out = null;
 		try {
+			System.out.println("Opening Files");
 			File f1 = new File(origFileName);
 			File f2 = new File(targetFileName);
 		
@@ -240,16 +241,16 @@ public class BondiDirectoryManager {
 			
 			// do copy
 			in = new FileInputStream(f1);
-			out = new FileOutputStream(new File(f2.getAbsolutePath(), f1.getName()));  // For Overwrite the file.
+			out = new FileOutputStream(targetFile);  // For Overwrite the file.
 			byte[] buf = new byte[1024]; // the copy buffer
 			int len;
 			while ((len = in.read(buf)) > 0) {
 				out.write(buf, 0, len);
 			}
 		} catch (FileNotFoundException ex) {
-			return ex.getMessage();
+			return ("FileNotFoundException: " + ex.getMessage());
 		} catch (IOException e) {
-			return e.getMessage();
+			return ("FileIOException: " + e.getMessage());
 		} finally {
 			try {
 				if (in != null) 
@@ -257,12 +258,13 @@ public class BondiDirectoryManager {
 			} catch (Exception ignored) {
 			}
 			try {
+				System.out.println("try to close out");
 				if (out != null) 
 					out.close();
 			} catch (Exception ignored) {
 			}
 		}
-		//System.out.println("copy successful");
+//		System.out.println("copy successful");
 		return null;
 	}
 	

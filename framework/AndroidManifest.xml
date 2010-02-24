@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-	package="com.phonegap" android:versionName="1.1" android:versionCode="3">
-	<!--
-		supports-screens android:largeScreens="true"
-		android:normalScreens="true" android:smallScreens="true"
-		android:resizeable="true" android:anyDensity="true" /
-	-->
+	package="com.phonegap" android:versionName="2.0" android:versionCode="5">
+	<supports-screens
+		android:largeScreens="true"
+		android:normalScreens="true"
+		android:smallScreens="true"
+		android:resizeable="true"
+		android:anyDensity="true"
+		/>
 	<uses-permission android:name="android.permission.CAMERA" />
 	<uses-permission android:name="android.permission.VIBRATE" />
 	<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
@@ -78,6 +80,6 @@
 			</intent-filter>
 		</activity>
 	</application>
-	<uses-sdk android:minSdkVersion="3" />
+	<uses-sdk android:minSdkVersion="5" />
 
 </manifest> 

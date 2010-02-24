@@ -323,8 +323,8 @@ public class FileSystem {
 	public void copyTo(final String orig, final String target,
 			final boolean overwrite) {
 		Log.w("FileSystem", "copyTo " + orig + " target:" + target);
-		Thread t = new Thread() {
-			public void run() {
+//		Thread t = new Thread() {
+//			public void run() {
 				String status = "";
 				try {
 					status = fileManager.copyTo(orig, target, overwrite);
@@ -339,10 +339,10 @@ public class FileSystem {
 					mAppView.loadUrl("javascript:bondi.filesystem.fail('" + status + "');");
 				}
 			}
-		};
-		t.start();
-		return;
-	}
+//		};
+//		t.start();
+//		return;
+//	}
 
 	/**
 	 * moveTo
