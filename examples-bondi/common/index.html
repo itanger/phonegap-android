@@ -1,0 +1,555 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+  "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta name="viewport" content="width=320; user-scalable=no" />
+<meta http-equiv="Content-type" content="text/html; charset=utf-8">
+<title>PhoneGap</title>
+<link rel="stylesheet" href="master.css" type="text/css" media="screen"
+	title="no title" charset="utf-8">
+<script type="text/javascript" charset="utf-8" src="phonegap.js"></script>
+<script type="text/javascript" charset="utf-8"><!--
+	
+
+function Debug() {
+}
+
+Debug.prototype.log = function(text){
+}
+
+PhoneGap.addConstructor(function() {
+    if (typeof debug == "undefined") debug = new Debug();
+});
+
+function testDefaultLocations() {
+	var location = bondi.filesystem.getDefaultLocation('documents');
+	alert(location);
+	location = bondi.filesystem.getDefaultLocation('images');
+	alert(location);
+	location = bondi.filesystem.getDefaultLocation('wgt:private');
+	alert(location);
+	try {
+	location = bondi.filesystem.getDefaultLocation('temp'); //does not exist
+	} catch (e) {}
+	alert(location);
+	var allLocations = bondi.filesystem.getRootLocations();
+	alert("testDefaultLocations done");
+}
+
+function DeleteCreateTest() {
+	var invalidLocation = bondi.filesystem.resolve(bondi.filesystem.getDefaultLocation('documents'));
+	invalidLocation.absolutePath = "/abc";
+	try {
+		invalidLocation.listFiles();
+	}catch(e){
+		//alert("invalid location " + e.code);
+	}
+	
+	var location = bondi.filesystem.resolve(bondi.filesystem.getDefaultLocation('documents')); //valid location
+	var files = location.listFiles();
+	
+	//clean up
+	var success;
+	for(var i = 0; i < files.length; i++) {
+		if (files[i].isFile) {
+			files[i].deleteFile();
+			//alert(files[i].absolutePath + ' deleted');
+		}
+		if (files[i].isDirectory) {
+			try{
+				success = files[i].deleteDirectory(true);
+			} catch (e) {
+				//alert(e.code)
+			}
+			
+			//files[i].deleteDirectory(true);
+			//alert('dir ' + files[i].absolutePath + ' deleted' + " success: "+ success );
+		}
+	}
+	var dir = location.createDirectory("mydir/mydir2");
+	var file = dir.createFile("myfile.txt");
+	var dir2 = dir.parent;
+	var file2 = dir2.createFile("myfile2.txt");
+	try {
+	var dir3 = location.createDirectory("mydir"); //create dir that already exists -> IO_ERROR
+	} catch (e){
+		//alert(e.code);
+		var dir3 = location.createDirectory("mydir3")
+	}
+			
+	var stream = file.open("w","UTF-8");
+	stream.write("test text");
+	stream.close();	
+	
+	
+	file.absolutePath = "bla";
+	try {
+		stream = file.open("r","UTF-8"); //invalid location
+	} catch (e){
+		//alert("PERMISSION_DENIED " + e.code);
+	}
+	
+	alert("writeDeleteTest done");
+}
+
+function resolveTest() {
+ 	var documents = bondi.filesystem.getDefaultLocation("documents");
+ 	try {
+	var mydoc= bondi.filesystem.resolve(documents + "/data/2009/mydoc.txt"); //invalid location
+	} catch (e) {}
+	if (mydoc == null)
+		//alert("invalid location");
+	
+	mydoc = bondi.filesystem.resolve(documents + "/mydir/mydir2/myfile.txt"); //valid location
+	if (mydoc != null)
+		alert(mydoc.name);
+	var mydir = mydoc.parent.parent;
+	if (mydir != null){
+		alert(mydir.name);
+		var files = mydir.listFiles();
+	}
+	
+	var myfile = mydir.resolve("/mydir2/myfile.txt"); //using File.resolve relatively
+	if (myfile != null)
+		alert(myfile.isFile);
+	
+	alert("resolveTest done");
+	
+	
+}
+
+function copyMoveTest_auskomm() {
+	var location = bondi.filesystem.resolve(bondi.filesystem.getDefaultLocation('documents')); //valid location
+	var mydoc = bondi.filesystem.resolve(location.absolutePath + "/mydir/mydir2/myfile.txt"); //valid location
+	//mydoc.absolutePath = "xxx";//manipulate it
+	try {
+		mydoc.copyTo(copysuccess, errorCallback, location.absolutePath+"/file.copy", false);
+		//mydoc.moveTo(copysuccess, errorCallback, location.absolutePath+"/file.copy", true); //trying to overwrite
+	} catch (e) {
+		alert("not copied" + e);
+	}
+	
+	alert('copyMoveTest done');
+}
+	
+	function copysuccess(copiedFile) { alert("file copied"); }
+	
+	function readWriteTest(){
+			var location = bondi.filesystem.resolve(bondi.filesystem.getDefaultLocation('documents')); //valid location
+			var file = bondi.filesystem.resolve(location.absolutePath + "/mydir/mydir2/myfile.txt"); //valid location
+			
+			//reading String
+
+			var readStream = file.open("r","UTF-8");
+			var text = readStream.read(1);
+			//alert(text + " "+readStream.bytesAvailable + " "+readStream.eof + " "+readStream.position);
+			text = readStream.read(9);
+			//alert(text + " "+readStream.bytesAvailable + " "+readStream.eof + " "+readStream.position);
+			readStream.close();
+			//text = readStream.read(9); should throw an exception
+			
+			var writeStream = file.open("w","ISO8859-1");
+			writeStream.write(text);
+			alert(writeStream.bytesAvailable + " "+writeStream.eof + " "+writeStream.position);
+			
+			/*
+			var writeStream = file.open("w","UTF-8");
+			writeStream.writeBase64(base64);
+			
+			var file = files[0];
+			var stream = file.open("r","UTF-8");
+			var dataRead= stream.readBytes(stream.bytesAvailable);
+			stream.close();
+			stream = file.open("w","UTF-8");
+			stream.writeBytes(dataRead);
+			stream.close();
+			*/
+	
+			alert("readWriteTest finished");
+	}
+	
+	function getFileSystem(){
+		//alert(bondi.filesystem.maxPathLength);
+		var location,temp;
+		try {
+			//testDefaultLocations();
+			DeleteCreateTest();
+			//resolveTest();
+			//copyMoveTest();
+			readWriteTest();
+			
+		} catch (e) {			
+			alert(e +" "+ e.code)
+		}
+		var target = bondi.filesystem.resolve(bondi.filesystem.getDefaultLocation('documents'));
+		try {
+			target.resolve("mydir").deleteDirectory(true);
+		} catch (e) {
+		}
+		try {
+			target.resolve("mydir3").deleteDirectory(true);
+		} catch (e) {
+		}
+		try {
+			target.resolve("myfile2.txt").deleteFile();
+		} catch (e) {
+		}
+		
+		
+	};
+
+    function deviceInfo(){
+      //debug.log("deviceInfo");
+      document.getElementById("platform").innerHTML   = device.platform;
+      document.getElementById("version").innerHTML    = device.version;
+      document.getElementById("devicename").innerHTML = device.name;
+      document.getElementById("uuid").innerHTML       = device.uuid;
+	  document.getElementById("battery").innerHTML       = bondi.devicestatus.getPropertyValue({property:"batteryLevel", aspect:"Battery", component:"_default"});
+	  document.getElementById("batteryTechnology").innerHTML       = bondi.devicestatus.getPropertyValue({property:"batteryTechnology", aspect:"Battery", component:"_default"});
+    }
+	
+    function getLocation() {
+      //debug.log("getLocation");
+      navigator.notification.activityStart();
+	  try {
+		var options = {};
+		options.timeout = 1;
+		options.maximumAge = 1000;
+		options.enableHighAccuracy=true;
+		bondi.geolocation.getCurrentPosition(onPositionSuccess,onPositionError, options);
+	  } catch(error) {
+		alert("error requesting current location: " + error.message +" "+ error.code);
+	  }
+    }
+
+	function onPositionSuccess(p){
+        //debug.log(p.coords.latitude + " " + p.coords.longitude);
+        //navigator.notification.alert(p.coords.latitude + " " + p.coords.longitude, "Your GeoLocation", "Thanks");
+		var message = document.getElementById("map");
+		//message.innerHTML ="<img src='http://maps.google.com/staticmap?center=" + p.coords.latitude + "," + p.coords.longitude + "&size=300x200&maptype=hybrid&zoom=16&key=YOURGOOGLEAPIKEY' />";
+		message.innerHTML+="<p>Timestamp: " + p.timestamp + "</p>";
+		message.innerHTML+="<p>Latitude: " + p.coords.latitude + "</p>";
+		message.innerHTML+="<p>Longitude: " + p.coords.longitude + "</p>";		
+		message.innerHTML+="<p>Accuracy: " + p.coords.accuracy + "</p>";
+		message.innerHTML+="<p>Altitude: " + p.coords.altitude + "</p>";
+		message.innerHTML+="<p>Altitude Accuracy: " + p.coords.altitudeAccuracy + "</p>";
+		message.innerHTML+="<p>Speed: " + p.coords.speed + "</p>";
+		message.innerHTML+="<p>Heading: " + p.coords.heading + "</p>";
+		
+		navigator.notification.activityStop();
+	};
+
+	function onPositionError (error){
+		alert(error.code + ' ' + error.message);
+	};
+    
+    function customAlert(){
+      navigator.notification.alert("Custom alert", "Custom title", "Yup!");
+    }
+  
+    function beep(){
+      //debug.log("beep");
+      navigator.notification.beep(2);
+    }
+  
+    function vibrate(){
+      //debug.log("vibrate");
+      navigator.notification.vibrate(0);
+    }
+  
+    function getContactsPrompt(){
+      //debug.log("getContactsPrompt");
+	  
+		var pageSize = prompt("Page size", 10);
+		if (pageSize) {
+			var pageNumber = prompt("Page number", 1);
+			if (pageNumber) {
+				var nameFilter = prompt("Name filter", null);
+				getContacts(parseInt(pageSize), parseInt(pageNumber), nameFilter);
+			}
+		}
+    }
+
+    function showLoadingScreen(durationInSeconds){
+		if (!durationInSeconds) {
+			durationInSeconds = prompt("Enter the load duration in seconds", 3);
+		}
+
+		if (durationInSeconds) {
+			options = { 'duration': durationInSeconds };
+			navigator.notification.loadingStart(options);
+		} else {
+			return;
+		}
+	}
+		
+    function getContacts(pageSize, pageNumber, nameFilter){
+      //debug.log("getContacts");
+      var fail = function(){};
+	  
+	  var options = {};
+	  if (pageSize)
+		options.pageSize = pageSize;
+	  if (pageNumber)
+		options.pageNumber = pageNumber;
+	  if (nameFilter)
+		options.nameFilter = nameFilter;
+	  
+	  var durationOptions = { minDuration : 2 };
+	  navigator.notification.loadingStart(durationOptions);
+      navigator.ContactManager.getAllContacts(getContacts_Return, fail, options);
+    }
+	
+	function getContacts_Return(contactsArray)
+	{
+		var names = "";
+		
+		for (var i = 0; i < contactsArray.length; i++) {
+			var con = new Contact();
+			con.firstName = contactsArray[i].firstName;
+			con.lastName = contactsArray[i].lastName;
+			con.phoneNumber = contactsArray[i].phoneNumber;
+			con.address = contactsArray[i].address;	
+			names += con.displayName();
+			
+			if (i+1 != contactsArray.length)
+				names += ",";
+		}
+		
+		navigator.notification.loadingStop();
+		navigator.notification.alert(names, "Contacts Returned", "Dismiss");
+	}
+	
+	var __editDisplayFirstContact = false;
+	function displayFirstContact(allowsEditing)
+	{
+	  var options = { pageSize : 1, pageNumber: 1 };
+	  __editDisplayFirstContact = allowsEditing;
+	  navigator.ContactManager.getAllContacts(displayFirstContact_Return, null, options);
+	}
+	
+	function displayFirstContact_Return(contactsArray)
+	{
+		var options = { allowsEditing: __editDisplayFirstContact };
+		
+		for (var i = 0; i < contactsArray.length; i++) {
+			navigator.ContactManager.displayContact(contactsArray[i].recordID, null, options);
+		}
+	}
+
+	function contactsCount(){
+      //debug.log("contactCount");
+      navigator.ContactManager.contactsCount(showContactsCount);
+    }
+	
+	function showContactsCount(count){
+		alert("Number of contacts: " + count);
+	}
+
+	function addContact(gui){
+		var sample_contact = { 'firstName': 'John', 'lastName' : 'Smith', 'phoneNumber': '555-5555' };
+	
+		if (gui) {
+			navigator.ContactManager.newContact(sample_contact, null, { 'gui': true });
+		} else {
+			var firstName = prompt("Enter a first name", sample_contact.firstName);
+			if (firstName) {
+				var lastName = prompt("Enter a last name", sample_contact.lastName);
+				if (lastName) {
+					var phoneNumber = prompt("Enter a phone number", sample_contact.phoneNumber);
+					if (phoneNumber) {
+						sample_contact = { 'firstName': firstName, 'lastName' : lastName, 'phoneNumber' : phoneNumber };
+						navigator.ContactManager.newContact(sample_contact, chooseContact_Return);
+					}
+				}
+			}
+		}
+	}
+	
+	function chooseContact(allowsEditing)
+	{
+		var options = { allowsEditing: allowsEditing };
+		navigator.ContactManager.chooseContact(chooseContact_Return, options);
+	}
+	
+	function chooseContact_Return(contact)
+	{
+		if (contact) {
+			navigator.notification.alert(contact.firstName + " " + contact.lastName, "Contact Returned", "Dismiss");
+		}
+	}
+    
+	function removeContact()
+	{
+		navigator.ContactManager.chooseContact(removeContact_Return, null);
+	}
+	
+	function removeContact_Return(contact)
+	{
+		if (contact) {
+			navigator.ContactManager.removeContact(contact.recordID, removeContact_Success, null);
+		}
+	}
+
+	function removeContact_Success(contact)
+	{
+		if (contact) {
+			navigator.notification.alert(contact.firstName + " " + contact.lastName, "Contact Removed", "Dismiss");
+		}
+	}
+	
+
+    function watchAccel() {
+      //debug.log("watchAccel");
+      var suc = function(a){
+        document.getElementById('x').innerHTML = roundNumber(a.x);
+        document.getElementById('y').innerHTML = roundNumber(a.y);
+        document.getElementById('z').innerHTML = roundNumber(a.z);
+      };
+      var fail = function(){};
+      var opt = {};
+      opt.frequency = 100;
+      timer = navigator.accelerometer.watchAcceleration(suc,fail,opt);
+    }
+      
+    function roundNumber(num) {
+      var dec = 3;
+      var result = Math.round(num*Math.pow(10,dec))/Math.pow(10,dec);
+      return result;
+	}
+
+    function preventBehavior(e) { 
+      e.preventDefault(); 
+    };
+	
+	function getPicture() { 
+	  bondi.camera.getCameras(onCameras, null);
+	};
+	
+	
+	function onCameras(cameras){
+		var camera = cameras[0];
+		try {
+			//camera.setFeature(1,1);
+		} catch (e) {
+			//alert(e);
+			//alert(e.code);
+		}
+		camera.takePicture(getPicture_Sucess, errorCallback, {quality:10,width:10,height:100});
+	}
+
+	
+	function getPicture_Sucess(path){
+	  alert(path);
+	  //document.getElementById("test_img").src = "data:image/jpeg;base64," + imageData;
+	};
+	
+	function errorCallback(error){
+	  alert(error.code + ' ' + error.message);
+	};
+	
+	
+
+
+    PhoneGap.addConstructor(function(){
+      //document.addEventListener("touchmove", preventBehavior, false);
+      deviceInfo();
+      document.addEventListener('orientationChanged', function(e) {
+          // debug.log("Orientation changed to " + e.orientation);
+         }, false);
+    });
+    
+    --></script>
+</head>
+<body id="stage" class="theme">
+
+<!--
+	  <a href="javascript:addContact(true)">New Contact (GUI)</a>
+	  <br />
+	  <a href="javascript:addContact(false)">New Contact (API)</a>
+	  <br />
+	  <a href="javascript:getContacts(1,1)">Get 1st Contact (query)</a>
+	  <br />
+	  <a href="javascript:displayFirstContact(false)">DISPLAY 1st Contact (by recordID)</a>
+	  <br />
+	  <a href="javascript:displayFirstContact(true)">DISPLAY AND EDIT 1st Contact (by recordID)</a>
+	  <br />
+	  <a href="javascript:getContacts(5,1)">Get 1st Page of Contacts, with Page size of 5</a>
+	  <br />
+	  <a href="javascript:getContacts(5,2)">Get 2nd Page of Contacts, with Page size of 5</a>
+	  <br />
+	  <a href="javascript:getContacts(20,1)">Get All Contacts (MAXING TO 20)</a>
+	  <br />
+	  <a href="javascript:getContactsPrompt()">Get All Contacts (PROMPT)</a>
+	  <br />
+	  <a href="javascript:getContacts()">Get ALL Contacts (WARNING: may be huge)</a>
+	  <br />
+	  <a href="javascript:contactsCount()">Contacts Count</a>
+	  <br />
+	  <a href="javascript:chooseContact(true)">Choose Contact to Edit</a>
+	  <br />
+	  <a href="javascript:chooseContact()">Choose Contact</a>
+	  <br />
+	  <a href="javascript:removeContact()">Choose Contact to Remove</a>
+	  <br />
+
+	  <a href="javascript:showLoadingScreen()">Load start</a>
+	  <br />
+-->
+<div id="Page1">
+<h2>This file tests several Bondi functions.</h2>
+
+<div id="info" class="Panel">
+<table>
+	<tr>
+		<td>
+		<h4>Platform: <span id="platform">&nbsp;</span></h4>
+		</td>
+		<td>
+		<h4>Version: <span id="version">&nbsp;</span></h4>
+		</td>
+	</tr>
+	<tr>
+		<td colspan="2">
+		<h4>Device Name: <span id="devicename">&nbsp;</span></h4>
+		</td>
+	</tr>
+	<tr>
+		<td colspan="2">
+		<h4>UUID: <span id="uuid">&nbsp;</span></h4>
+		</td>
+	</tr>
+	<tr>
+		<td>
+		<h4>Battery at startup: <span id="battery">&nbsp;</span></h4>
+		</td>	
+	</tr>
+	<tr>
+		<td>
+		<h4>BatteryTechnology: <span id="batteryTechnology">&nbsp;</span></h4>
+		</td>
+	</tr>
+</table>
+</div>
+<dl id="accel-data">
+	<dt>X:</dt>
+	<dd id="x">&nbsp;</dd>
+	<dt>Y:</dt>
+	<dd id="y">&nbsp;</dd>
+	<dt>Z:</dt>
+	<dd id="z">&nbsp;</dd>
+</dl>
+<!--<a href="#" class="btn large" onclick="watchAccel();">Watch Accelerometer</a>-->
+<a href="#" class="btn large" onclick="getFileSystem();">BONDI filesystem</a>
+<a href="#" class="btn large" onclick="getLocation();">BONDI
+geolocation</a>
+<div id="map"></div>
+<a href="tel:411" class="btn">Call 411</a> <a href="#" class="btn"
+	onclick="customAlert();">Custom Alert</a> <a href="#" class="btn"
+	onclick="beep();">Beep</a> <a href="#" class="btn" onclick="vibrate();">Vibrate</a>
+</div>
+<div id="Page2"><!-- style="display: none" > --> <a href="#"
+	class="btn large" onclick="getPicture();">BONDI takePicture</a> <!-- <img style="width:120px;height:120px" id="test_img" src=""/>-->
+</div>
+</body>
+</html>

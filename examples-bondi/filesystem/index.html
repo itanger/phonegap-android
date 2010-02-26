@@ -1,0 +1,484 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>WebVM W3C Compliant FileSystem Module Test</title>
+<link rel="stylesheet" href="master.css" type="text/css" media="screen"
+	title="no title" charset="utf-8">
+<!-- Initial WebVM Loader -->
+<script type="text/javascript" src="phonegap.js"></script>
+<script type="text/javascript">
+	var eventListener = null;
+	
+	// this function is called if a BONDI module is loaded successfully
+	try {
+    	var params = {};
+   	 	params.id = 'http://bondi.omtp.org/api/filesystem';
+    	params.successCallback = function() {
+
+    	};
+    	params.errorCallback = function(reason) {
+    	};
+    	//bondi.load(params.id, params);
+	} catch(e) {
+	}
+
+// test get documents defualt location
+function testGetDefaultLocation() {
+	var docType = 'documents';
+    var docLocation = bondi.filesystem.getDefaultLocation(docType);
+    var docDir = bondi.filesystem.resolve(docLocation);
+	alert('The defaultLocation for ' + docType + ' is: ' + docLocation);
+
+	docLocation = bondi.filesystem.getDefaultLocation(docType,90000000000);
+	if (docLocation != null) {
+		alert("Failed: Requesting 'documents' with 90GB free returned '" +docLocation+ "', but should have returned 'null'");
+	} else {
+		alert("Success: Requesting 'documents' with 90GB free returned 'null'");			
+	}
+}
+
+//test get documents defualt location
+function testGetRootLocations() {
+    var rootLocations = bondi.filesystem.getRootLocations();
+    try {
+    	for(var i = 0; i < rootLocations.length; i++) {
+            // displays name of each file name
+            alert('RootLocation' + i + ': ' + rootLocations[i]);
+    	}
+    } catch (e) {
+    	alert('Exception ' + e + ' in testGetRootLocations');
+    }
+}
+
+// list the files in the documentsDefaultLocation
+function testListFiles() {
+	try {
+		var docType = 'documents';
+	    var docLocation = bondi.filesystem.getDefaultLocation(docType);
+	    var docDir = bondi.filesystem.resolve(docLocation);
+	    
+		var b = docDir.listFiles();
+		var output = '';
+		for (var i=0; i<b.length; i++){
+			output += b[i].name + ' ';
+		}
+        alert('testListFiles returns: ' + output);
+    } catch (e) {
+    	alert('Exception ' + e + ' in testListFiles');
+    }
+}
+/**
+ * TestCase
+ * create a new directory in the documentRoot,
+ * copy an image from the into the new directory,
+ * delete the directory.
+ * PRE: at leat one jpg-File in the documentRoot directory
+ */
+function testCreateDirectoryAndCopy() {
+	try {
+		// retrieve the documents directory
+		var docType = 'documents';
+	    var docLocation = bondi.filesystem.getDefaultLocation(docType);
+	    var docDir = bondi.filesystem.resolve(docLocation);
+
+        // find a jpg picture tp be copied to the new directory
+		var b2 = docDir.listFiles();
+		var fileForCopy = null;
+		
+		for (var i1=0; i1<b2.length; i1++){
+			if (b2[i1].name.endsWith('.jpg')) {
+				// alert('found: ' + b2[i1].name);
+				fileForCopy = b2[i1];
+				break;
+			} else {
+				;//window.confirm(i1 + ':' + b2[i1].name);
+			}
+		}
+		if (fileForCopy == null) {
+        	window.confirm("This test requires at least one file that ends with .jpg in the root directory of the sd card.");
+        	return;
+    	}
+
+		// create the directory
+		var b = docDir.createDirectory('newDir' + (new Date()).getTime());
+		window.confirm('create directory returned: ' + b.absolutePath);
+
+		
+		window.confirm('Try to copy ' + fileForCopy.name + ' to ' + b.absolutePath);
+
+		// copy the picture to the new directory
+		fileForCopy.copyTo(function(){alert('copyTo1 successful (ok)');} , function(errorCode){alert('copyTo1 failed ( ' + errorCode + ')');}, b.absolutePath, false);
+
+		// try to copy again
+		//window.confirm('Try to copy again without overwrite: ' + fileForCopy.name + ' to ' + b.absolutePath);
+		//fileForCopy.copyTo(function(){alert('copyTo2 successful (fail)');} , function(){alert('copyTo2 failed (ok)');}, b.absolutePath, false);
+
+		// try to copy again and again
+		//window.confirm('Try to copy again with overwrite: ' + fileForCopy.name + ' to ' + b.absolutePath);
+		//fileForCopy.copyTo(function(){alert('copyTo3 successful (ok)');} , function(){alert('copyTo3 failed (fail)');}, b.absolutePath, true);
+
+		// try to delete the new directory
+		var b3;
+		try {
+			b3 = b.deleteDirectory(false);
+			window.confirm('deleteDirectory(' + b.name + ',false) result=' + b3 + '(FAILED)');
+		} catch (e) {
+			window.confirm('deleteDirectory(' + b.name + ',false) threw exception (OK)');
+		}
+		
+		// now really delete the directory		
+		var b4 = b.deleteDirectory(true);
+		window.confirm('f1.deleteDirectory(' + b.name + ',true) result=' + b4 + ' (ok) - test completed');
+		
+    } catch (e) {
+    	alert('Exception ' + e + ' in testCreateDirectoryAndCopy');
+    }
+}
+
+/**
+ * TestCase
+ * create a new directory in the documentRoot,
+ * move an image from the into the new directory,
+ * move the file back
+ * delete the directory.
+ * PRE: at leat one jpg-File in the documentRoot directory
+ */
+function testCreateDirectoryAndMove() {
+	try {
+		// retrieve the documents directory
+		var docType = 'documents';
+	    var docLocation = bondi.filesystem.getDefaultLocation(docType);
+	    var docDir = bondi.filesystem.resolve(docLocation);
+
+        // find a jpg picture tp be copied to the new directory
+		var b2 = docDir.listFiles();
+		var fileToMove = null;
+		
+		for (var i1=0; i1<b2.length; i1++){
+			if (b2[i1].name.endsWith('.jpg')) {
+				// alert('found: ' + b2[i1].name);
+				fileToMove = b2[i1];
+				break;
+			} else {
+				;//window.confirm(i1 + ':' + b2[i1].name);
+			}
+		}
+		if (fileToMove == null) {
+        	window.confirm("This test requires at least one file in the root directory of the sd card.");
+        	return
+    	}
+
+		// create the directory
+		var b = docDir.createDirectory('newDir' + (new Date()).getTime());
+		window.confirm('create directory created directory: ' + b.absolutePath);
+
+		// move the picture to the new directory
+		var result2 = fileToMove.moveTo(function(){window.confirm('moveTo1 successful (ok)');testCreateDirectoryAndMove_part2(docDir,fileToMove,b);} , function(){alert('moveTo1 failed (fail)');}, b.absolutePath, false);
+
+	} catch (e) {
+		alert('Exception ' + e + ' in testCreateDirectoryAndCopy_part1');
+	}
+}
+
+function testCreateDirectoryAndMove_part2(docDir,fileToMove,b) {
+
+	try {
+		// try to delete original file (should fail)
+		var b3;
+		try {
+			b3 = fileToMove.deleteFile();
+			window.confirm('deleteFile(' + fileToMove.absolutePath + ') result=' + b3 + '(expected was false)');
+		} catch (e) {
+			window.confirm('deleteFile(' + fileToMove.absolutePath + ') threw exception (FAIL)');
+		}
+		
+		// now move the file back
+		var movedFile = bondi.filesystem.resolve(b.absolutePath + '/' + fileToMove.name);
+		
+		var result3 = movedFile.moveTo(function(){alert('moveTo2 and the complete test case successful (ok)');b.deleteDirectory(true);} , function(){alert('moveTo2 failed (fail)');}, docDir.absolutePath, false);
+
+    } catch (e) {
+    	alert('Exception ' + e + ' in testCreateDirectoryAndCopy_part2');
+    }
+}
+
+
+function testCreateDirectoryAndDelete() {
+	try {
+		// retrieve the documents directory
+		var docType = 'documents';
+	    var docLocation = bondi.filesystem.getDefaultLocation(docType);
+	    var docDir = bondi.filesystem.resolve(docLocation);
+
+	    // calculate a new directory name
+	    window.confirm('try to create: ' + 'newDir' + (new Date()).getTime());
+
+		// create the directory
+		var newBondiFile = docDir.createDirectory('newDir' + (new Date()).getTime());
+		window.confirm('create directory ' +  newBondiFile.absolutePath + ' successful');
+		
+		// delete directory
+		var result = newBondiFile.deleteDirectory(false);
+		window.confirm('deleteDirectory(' + newBondiFile.absolutePath + ') returned: ' + result);
+    } catch (e) {
+    	alert('Exception ' + e + ' in testDeleteFile');
+    }
+}
+
+
+function testPositionBytesEOF() {
+    var docLocation = bondi.filesystem.getDefaultLocation("documents");
+    var docDir = bondi.filesystem.resolve(docLocation);
+    var docFiles = docDir.listFiles();
+    var target = null;
+    for (var i = 0; target == null && i < docFiles.length; i++) {
+        if (docFiles[i].isFile && (docFiles[i].fileSize > 0)) {
+            target = docFiles[i];
+        }
+    }
+    if (target != null) {
+        var stream = target.open("r","UTF-8");
+        if (stream.bytesAvailable != target.fileSize) {
+        	window.confirm("Failed: expected bytesAvailable to be " + target.length + ", but was " + stream.bytesAvailable);
+        	return;
+        }
+        if (stream.eof) {
+        	window.confirm("Failed: file should not be at EOF");
+        	return;
+        }
+        
+        stream.eof = true;
+        if (stream.eof) {
+          	window.confirm("Failed: EOF should not be settable!");
+           	return;
+        }
+        stream.position = stream.bytesAvailable;
+        if (stream.bytesAvailable != -1) {
+            window.confirm("Failed: bytesAvailable shoud be -1, but was " + stream.bytesAvailable);
+            return;
+        }
+        if (!stream.eof) {
+        	window.confirm("Failed: eof shoud be true, but was " + stream.eof);
+        	return;
+        }
+        stream.position = stream.position -1;
+        if (stream.bytesAvailable != 1) {
+        	window.confirm("Failed: eof shoud be 1, but was " + stream.bytesAvailable);
+        	return;
+        }
+        window.confirm("Success: testPositionBytesEOF ran successful.");
+    } else {
+        alert("This test requires at least one file in the root directory of the sd card.");
+    }
+}
+
+function testReadWrite() {
+    var docLocation = bondi.filesystem.getDefaultLocation("documents");
+    var docDir = bondi.filesystem.resolve(docLocation);
+    var testText = "Test in UTF8 mit \u00DCml\u00E4\u00FCten.";
+    try {
+        var temp = docDir.resolve("test_utf.txt");
+        temp.deleteFile();
+    } catch (e) {
+        console.log(e);
+        //ignored
+    }
+    var target = docDir.createFile("test_utf.txt");
+    var stream = target.open("w","UTF-8");
+    if (stream.bytesAvailable != -1) {
+    	window.confirm("Failed: file should be empty, but has size " + stream.bytesAvailable);
+    	return;
+    }
+    if (!stream.eof) {
+        window.confirm("Failed: stream should be at end of file, but it is not (text is '" + text + "'");
+        return;
+    }    
+    stream.write(testText);
+    if (stream.position != 29) {
+    	window.confirm("Failed: stream should be at byte 29, but is " + stream.position);
+    	return;
+    }
+    if (!stream.eof) {
+        window.confirm("Failed: stream should be at end of file, but it is not (text is '" + text + "'");
+        return;
+    }    
+	stream.close();
+	stream = target.open("w","UTF-8");
+    if (stream.bytesAvailable != 29) {
+    	window.confirm("Failed: file should have 29 bytes available, but has " + stream.bytesAvailable);
+    	return;
+    }
+    var text = stream.read(testText.length);
+
+    if (!stream.eof) {
+        window.confirm("Failed: stream should be at end of file, but it is not (text is '" + text + "'");
+        return;
+    }
+    
+    if (text != testText) {
+    	window.confirm("Failed: text should be 'Test in UTF8 mit \u00DCml\u00E4\u00FCten.', but was '" + text + "'");
+    	return;
+    }
+	stream.position = 0;
+	var bytes = stream.readBytes(29);
+    stream.close();
+    target.deleteFile();
+    target = docDir.createFile("test_utf.txt");
+    stream = target.open("rw","UTF-8");
+    if (stream.bytesAvailable != -1) {
+    	window.confirm("Failed: file should be empty, but has size " + stream.bytesAvailable);
+    	return;
+    }
+    if (!stream.eof) {
+        window.confirm("Failed: stream should be at end of file, but it is not (text is '" + text + "'");
+        return;
+    }
+    stream.writeBytes(bytes);    
+    if (stream.position != 29) {
+    	window.confirm("Failed: stream should be at byte 29, but is " + stream.position);
+    	return;
+    }
+    if (!stream.eof) {
+        window.confirm("Failed: stream should be at end of file, but it is not (text is '" + text + "'");
+        return;
+    }    
+    
+    stream.position = 0;
+    text = stream.read(testText.length);
+    if (text != testText) {
+    	window.confirm("Failed: text should be 'Test in UTF8 mit \u00DCml\u00E4\u00FCten.', but was '" + text + "'");
+    	return;
+    }
+
+	stream.close();
+	target.deleteFile();
+
+	testText = "Test in latin1 mit \u00DCml\u00E4\u00FCten.";
+    try {
+        var temp = docDir.resolve("test_latin1.txt");
+        temp.deleteFile();
+    } catch (e) {
+        console.log(e);
+        //ignored
+    }
+    var target = docDir.createFile("test_latin1.txt");
+    var stream = target.open("w","ISO8859-1");
+    if (stream.bytesAvailable != -1) {
+    	window.confirm("Failed: file should be empty, but has size " + stream.bytesAvailable);
+    	return;
+    }
+    if (!stream.eof) {
+        window.confirm("Failed: stream should be at end of file, but it is not (text is '" + text + "'");
+        return;
+    }    
+    stream.write(testText);
+    if (stream.position != testText.length) {
+    	window.confirm("Failed: stream should be at byte 29, but is " + stream.position);
+    	return;
+    }
+    if (!stream.eof) {
+        window.confirm("Failed: stream should be at end of file, but it is not (text is '" + text + "'");
+        return;
+    }    
+	stream.close();
+	stream = target.open("w","ISO8859-1");
+    if (stream.bytesAvailable != testText.length) {
+    	window.confirm("Failed: file should have 29 bytes available, but has " + stream.bytesAvailable);
+    	return;
+    }
+    var text = stream.read(testText.length);
+
+    if (!stream.eof) {
+        window.confirm("Failed: stream should be at end of file, but it is not (text is '" + text + "'");
+        return;
+    }
+    
+    if (text != testText) {
+    	window.confirm("Failed: text should be 'Test in latin1 mit \u00DCml\u00E4\u00FCten.', but was '" + text + "'");
+    	return;
+    }
+	stream.position = 0;
+	var bytes = stream.readBytes(testText.length);
+    stream.close();
+    target.deleteFile();
+    target = docDir.createFile("test_latin1.txt");
+    stream = target.open("rw","ISO8859-1");
+    if (stream.bytesAvailable != -1) {
+    	window.confirm("Failed: file should be empty, but has size " + stream.bytesAvailable);
+    	return;
+    }
+    if (!stream.eof) {
+        window.confirm("Failed: stream should be at end of file, but it is not (text is '" + text + "'");
+        return;
+    }
+    stream.writeBytes(bytes);    
+    if (stream.position != testText.length) {
+    	window.confirm("Failed: stream should be at byte 29, but is " + stream.position);
+    	return;
+    }
+    if (!stream.eof) {
+        window.confirm("Failed: stream should be at end of file, but it is not (text is '" + text + "'");
+        return;
+    }    
+    
+    stream.position = 0;
+    text = stream.read(testText.length);
+    if (text != testText) {
+    	window.confirm("Failed: text should be 'Test in latin1 mit \u00DCml\u00E4\u00FCten.', but was '" + text + "'");
+    	return;
+    }
+
+    stream.close();
+    target.deleteFile();
+    
+    window.confirm("Success: files successfully read!");
+    
+}
+
+
+function testMountEvents() {
+	if (eventListener != null) {
+		bondi.filesystem.unregisterEventListener(eventListener);
+		eventListener = null;
+		alert('MountListener unregistered\nInserting or removing the sd card should not trigger popups anymore.');
+	} else {		
+    	eventListener = { 
+    	    mountEvent: function(location) { 
+	    	alert('mounted ' + location); 
+	    	},
+            unmountEvent: function(location) { 
+            alert('unmounted ' + location);
+		    }
+    	};
+		bondi.filesystem.registerEventListener(eventListener);
+		alert('MountListener registered\nInserting or removing the sd card should trigger popups.');	
+	}
+}
+</script>
+</head>
+<body id="stage" class="theme">
+<a href="#" class="btn large" onclick="testPositionBytesEOF();">test
+Stream Attributes</a>
+<br></br>
+<a href="#" class="btn large" onclick="testReadWrite();">Test
+Reading and Writing Files</a>
+<br></br>
+<a href="#" class="btn large" onclick="testMountEvents();">Test
+Mount Events (needs real device)</a>
+<br></br>
+<a href="#" class="btn large" onclick="testGetDefaultLocation();">Test
+getDefaultLocation</a>
+<br></br>
+<a href="#" class="btn large" onclick="testGetRootLocations();">testGetRootLocations</a>
+<br></br>
+<a href="#" class="btn large" onclick="testListFiles();">testListing Directory contents</a>
+<br></br>
+<a href="#" class="btn large" onclick="testCreateDirectoryAndCopy();">testCreateDirectoryAndCopy</a>
+<br></br>
+<a href="#" class="btn large" onclick="testCreateDirectoryAndMove();">testCreateDirectoryAndMove</a>
+<br></br>
+<a href="#" class="btn large" onclick="testCreateDirectoryAndDelete();">testCreateDirectoryAndDelete</a>
+<br></br>
+</body>
+</html>

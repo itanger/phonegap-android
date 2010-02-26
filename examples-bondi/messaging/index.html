@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script type="text/javascript" src="phonegap.js"></script>
+<script type="text/javascript">
+//import android.widget.Toast;
+
+var smsReceivers = [];
+
+// Get the batteryLevel property of the Battery aspect.
+function testSendSMS(phoneNo, text) {
+	var smsParams = {};
+	smsParams.body = text;
+	smsParams.recipients = [];
+	smsParams.recipients.push(phoneNo);
+
+	try{
+		var newsms = bondi.messaging.createSMS(smsParams);
+	
+		bondi.messaging.sendSMS(this.success, this.failure, newsms);
+	} catch (error){
+		alert("Error with code: " + error.code + "\n" + "Message reads: " + error.message);
+	}
+}
+
+this.success = function(message) {
+	alert ("SMS was sent successfully. Result reads: " + message);
+}
+
+this.failure = function(error){
+	alert ("Problem while sending SMS. ErrorName is " + error.name + " ErrorMessage: " + error.message);
+}
+
+
+function registerSmsReceiver(){
+	
+	try{
+		var key = bondi.messaging.subscribeToSMS(
+				function(message) { alert("SMS Received successfully: " + message.getProperty("body")); }
+				, null, false);
+		//Toast.makeText(context, "Receiver for Sms Registered", Toast.LENGTH_LONG).show();
+		this.smsReceivers.push(key);
+		document.getElementById("SmsSubscriptions").innerHTML =  "Registered SMS-Receivers: " + this.smsReceivers.length + "<br />";
+	} catch (error) {
+		alert("Error with code: " + error.code + "\n" + "Message reads: " + error.message);
+	}		
+}
+
+function unregisterSmsReceiver(){
+	var key = this.smsReceivers.pop();
+	if (key == null){
+		alert("There is no Receiver to unregister");
+		return;
+	}
+	alert("Receiver to unregister has no: " + key + " leaving a rest of: " + this.smsReceivers.length);
+
+	try {
+		bondi.messaging.unsubscribeFromSMS(key);
+		document.getElementById("SmsSubscriptions").innerHTML =  "Registered SMS-Receivers: " + this.smsReceivers.length + "<br />";
+	} catch (error) {
+		alert("Error with code: " + error.code + "\n" + "Message reads: " + error.message);
+	}
+}
+		
+function unregisterAllsmsReceivers(){
+	try {
+	
+		while (this.smsReceivers.length > 0){
+			var key = this.smsReceivers.pop();
+			bondi.messaging.unsubscribeFromSMS(key);
+		}
+		document.getElementById("SmsSubscriptions").innerHTML =  "Registered SMS-Receivers: " + this.smsReceivers.length + "<br />";
+		alert("unregistered all sms receivers");
+	} catch(error) {
+		alert("Error with code: " + error.code + "\n" + "Message reads: " + error.message);
+	}
+}
+
+function getNoOfRegisteredSMSReceivers(){
+	var no = 0;
+	for (var i = 0; i < this.smsReceivers.length; i++){
+		if (this.smsReceivers[i] > -1){
+			no++;
+		}
+	}
+}
+
+function getOwnNumber(){
+	return 01705658739;
+}
+
+</script>
+</head>
+<body>
+<h2>Tests for the Messaging-capabilities.</h2>
+<div id="progress"></div>
+<p id="SmsSubscriptions">Currently, no subscriptions.</p>
+<input 	type="text" 	id="phoneNo" name="phoneNo"			value="5554"/> 
+<input 	type="text" 	id="smsMessage" name="smsMessage" 	value="Dit ist eine TestSMS..."/>
+<input 	type="submit" 	onclick="testSendSMS(document.getElementById('phoneNo').value, document.getElementById('smsMessage').value)" value="testSendSMS" /><br></br>
+<input 	type="submit" 	onclick="registerSmsReceiver()" 	value="registerSmsReceiver"/>
+<input	type="submit"	onclick="unregisterSmsReceiver()" 	value="unregisterSmsReceiver" />
+<input	type="submit"	onclick="unregisterAllsmsReceivers()" value="unregisterALLsmsReceivers" />
+
+</body>
+</html>
+
