@@ -31,6 +31,7 @@ import android.net.Uri;
 import android.os.Vibrator;
 import android.telephony.TelephonyManager;
 import android.webkit.WebView;
+import android.widget.Toast;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
 
@@ -60,6 +61,10 @@ public class PhoneGap{
 	{
 		Uri ringtone = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
 		Ringtone notification = RingtoneManager.getRingtone(mCtx, ringtone);
+		if (notification == null){
+			Toast.makeText(mCtx, "Beep (no ringtone sound is accessible)", Toast.LENGTH_LONG).show();
+			return;
+		}
 		for (long i = 0; i < pattern; ++i)
 		{
 			notification.play();
@@ -81,10 +86,9 @@ public class PhoneGap{
 	
 	public String getUuid()
 	{		
-		TelephonyManager operator = (TelephonyManager) mCtx.getSystemService(Context.TELEPHONY_SERVICE);
-		String uuid = operator.getDeviceId();
-		// String uuid = Settings.Secure.getString(mCtx.getContentResolver(), android.provider.Settings.Secure.ANDROID_ID);
-		
+		//TelephonyManager operator = (TelephonyManager) mCtx.getSystemService(Context.TELEPHONY_SERVICE);		
+		//String uuid = operator.getDeviceId();
+		String uuid = Settings.Secure.getString(mCtx.getContentResolver(), android.provider.Settings.Secure.ANDROID_ID);
 		return uuid;
 	}
 	
