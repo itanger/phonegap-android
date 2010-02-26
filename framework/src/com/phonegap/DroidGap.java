@@ -131,20 +131,6 @@ public class DroidGap extends Activity {
         if(cupcakeStorage != null)
         	cupcakeStorage.setStorage(appPackage);
 
-        /* Load a URI from the strings.xml file */
-        Class<R.string> c = R.string.class;
-        Field f;
-        int i = 0;
-        
-        try {
-            f = c.getField("url");
-            i = f.getInt(f);
-            this.uri = this.getResources().getString(i);
-          } catch (Exception e)
-          {
-            this.uri = "http://www.phonegap.com";
-          }
-          appView.loadUrl(this.uri);
         root.addView(appView);
         setContentView(root);
         
