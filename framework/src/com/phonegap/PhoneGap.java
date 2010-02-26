@@ -29,6 +29,7 @@ import android.content.IntentFilter;
 import android.hardware.SensorManager;
 import android.net.Uri;
 import android.os.Vibrator;
+import android.provider.Settings;
 import android.telephony.TelephonyManager;
 import android.webkit.WebView;
 import android.widget.Toast;
