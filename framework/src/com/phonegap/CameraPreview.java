@@ -4,7 +4,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 import org.apache.commons.codec.binary.Base64;
 
@@ -17,6 +19,7 @@ import android.graphics.PixelFormat;
 import android.graphics.Bitmap.CompressFormat;
 import android.hardware.Camera;
 import android.hardware.Camera.Parameters;
+import android.hardware.Camera.Size;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -70,13 +73,47 @@ public class CameraPreview extends Activity implements SurfaceHolder.Callback{
         stopButton.setOnClickListener(mSnapListener);
     }
     
+    
+    private Size getBestSize(List<Size> pSizes, int width, int height){
+    	Size preDist = mCamera.new Size(Integer.MAX_VALUE,Integer.MAX_VALUE);
+    	Size resSize = null;
+
+    	if (pSizes != null){
+    		for (Size pSize : pSizes){
+    			if(pSize.height >= height && pSize.width >= width){
+    				int hDist = pSize.height - height;
+    				int wDist = pSize.width - width;
+    				if ( (hDist < preDist.height) && (wDist < preDist.width)){
+    					preDist.height = hDist;
+    					preDist.width = wDist;
+    					resSize = pSize;
+    				}
+    			}
+    		}
+    	}
+    	return resSize;
+    }
+    
     private OnClickListener mSnapListener = new OnClickListener() {
         public void onClick(View v) {
         	// System.out.println("View: " + v.getWidth() + " " + v.getHeight()); 
         	Parameters params = mCamera.getParameters();
-        	params.setPictureSize(width, height);
-        	params.setPreviewSize(width, height);
+        	Size picS = params.getPictureSize();
+        	Size preS = params.getPreviewSize();
+        	
+        	Size bestSize = getBestSize(params.getSupportedPreviewSizes(), width, height);
+        	if (bestSize != null){
+        		preS = bestSize;
+        	}
+        	bestSize = getBestSize(params.getSupportedPictureSizes(), width, height);
+        	if (bestSize != null){
+        		picS = bestSize;
+        	}
+        	
+        	params.setPictureSize(picS.width, picS.height);
+        	params.setPreviewSize(preS.width, preS.height);
         	try {
+        		
         		mCamera.setParameters(params);
         		mCamera.takePicture(null, null, mPictureCallback);
         	} catch (Throwable e) {
@@ -321,17 +358,6 @@ public class CameraPreview extends Activity implements SurfaceHolder.Callback{
     {
         Log.e(TAG, "surfaceCreated");
         mCamera = Camera.open();
-        Parameters p = mCamera.getParameters();
-// unComment this to prevent interlacing?     
-//        p.setPreviewSize(176, 144);
-//        holder.setFixedSize(176, 144);
-        mCamera.setParameters(p);
-//        try {
-//			mCamera.setPreviewDisplay(holder);
-//		} catch (IOException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		}
         //mCamera.startPreview();
     }
 
