@@ -371,7 +371,9 @@ public class CameraPreview extends Activity implements SurfaceHolder.Callback{
         }
 
         Camera.Parameters p = mCamera.getParameters();
-        p.setPreviewSize(w, h);
+        // the following call crashes on Nexus One... fixed by commenting out
+        // further testing needed....
+        // p.setPreviewSize(w, h);
         mCamera.setParameters(p);
         try {
 			mCamera.setPreviewDisplay(holder);
