@@ -40,8 +40,7 @@ public class BondiGeoListener extends GeoListener{
 	// This stops the listener
 	void stop()
 	{
-		mGps.stop();
-		mNetwork.stop();
+		super.stop();
 	}
 
 	public Location getCurrentLocation() {
