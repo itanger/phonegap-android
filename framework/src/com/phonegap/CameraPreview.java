@@ -73,45 +73,53 @@ public class CameraPreview extends Activity implements SurfaceHolder.Callback{
         stopButton.setOnClickListener(mSnapListener);
     }
     
-    
+    /**
+     * Chooses the best-fitting size out of a list, that means the size that
+     * has the least distance to what we originally wished for.
+     * 
+     * @param pSizes List of Sizes to choose from
+     * @param width  the width we want to be as near as possible too
+     * @param height the height we want to be as near as possible too.
+     * @return the size that has the least overall distance to the size described 
+     * by our parameters or null if the list was empty. If the parameters describe a picturesize
+     * that is greater than the biggest avaiable size the biggest one will be choosen.
+     */
     private Size getBestSize(List<Size> pSizes, int width, int height){
-    	Size preDist = mCamera.new Size(Integer.MAX_VALUE,Integer.MAX_VALUE);
     	Size resSize = null;
+    	int bestDist = Integer.MAX_VALUE;
 
     	if (pSizes != null){
     		for (Size pSize : pSizes){
-    			if(pSize.height >= height && pSize.width >= width){
-    				int hDist = pSize.height - height;
-    				int wDist = pSize.width - width;
-    				if ( (hDist < preDist.height) && (wDist < preDist.width)){
-    					preDist.height = hDist;
-    					preDist.width = wDist;
-    					resSize = pSize;
-    				}
+    			int hDist = Math.abs(pSize.height - height);
+    			int wDist = Math.abs(pSize.width - width);
+    			if ( bestDist > (hDist + wDist)){
+    				bestDist = hDist + wDist;
+    				resSize = pSize;
     			}
     		}
     	}
     	return resSize;
     }
     
-    private OnClickListener mSnapListener = new OnClickListener() {
+   private OnClickListener mSnapListener = new OnClickListener() {
         public void onClick(View v) {
         	// System.out.println("View: " + v.getWidth() + " " + v.getHeight()); 
         	Parameters params = mCamera.getParameters();
-        	Size picS = params.getPictureSize();
-        	Size preS = params.getPreviewSize();
         	
         	Size bestSize = getBestSize(params.getSupportedPreviewSizes(), width, height);
         	if (bestSize != null){
-        		preS = bestSize;
-        	}
-        	bestSize = getBestSize(params.getSupportedPictureSizes(), width, height);
-        	if (bestSize != null){
-        		picS = bestSize;
+        		// if the camera provides a list of previewsizes, take the one that fits best our parameters
+        		// else just leave all at it is at the moment to prevent crashs
+        		params.setPreviewSize(bestSize.width, bestSize.height);
         	}
         	
-        	params.setPictureSize(picS.width, picS.height);
-        	params.setPreviewSize(preS.width, preS.height);
+        	bestSize = getBestSize(params.getSupportedPictureSizes(), width, height);
+        	if (bestSize != null){
+        		// if the camera provides a list of picturesizes, take the one that fits best our parameters
+        		// else just leave all at it is at the moment to prevent crashs
+        		params.setPictureSize(bestSize.width, bestSize.height);
+        	}
+        	
         	try {
         		
         		mCamera.setParameters(params);
@@ -373,9 +381,13 @@ public class CameraPreview extends Activity implements SurfaceHolder.Callback{
         }
 
         Camera.Parameters p = mCamera.getParameters();
-        // the following call crashes on Nexus One... fixed by commenting out
-        // further testing needed....
-        // p.setPreviewSize(w, h);
+        Size bestSize = getBestSize(p.getSupportedPreviewSizes(), w, h);
+    	if (bestSize != null){
+    		// if the camera provides a list of picturesizes, take the one that fits best our parameters
+    		// else just leave all at it is at the moment to prevent crashs
+    		p.setPreviewSize(bestSize.width, bestSize.height);
+    	}
+    	
         mCamera.setParameters(p);
         try {
 			mCamera.setPreviewDisplay(holder);
