@@ -193,9 +193,8 @@ public class CameraPreview extends Activity implements SurfaceHolder.Callback{
 		// determine the target directory
 		String mediaState = Environment.getExternalStorageState();
 		// System.out.println("mediaState=" + mediaState);
-		boolean storeInternal = !"mounted".equals(mediaState);
+		boolean sdCardAvail = !"mounted".equals(mediaState);
 		String fileNameExt = Environment.getExternalStorageDirectory() + "/picture" + dateString + ".jpg";
-		String fileNameInt = "picture" + dateString + ".jpg";
 		String fileName = "defaultFileName";
     	
 		// store the image in an ByteArray
@@ -204,7 +203,7 @@ public class CameraPreview extends Activity implements SurfaceHolder.Callback{
 		try {
 			myMap = BitmapFactory.decodeByteArray(data, 0, data.length);
 		} catch (Throwable e) {
-			//e.printStackTrace();
+			Log.e(TAG, "cannot decode bitmap", e);
     		mIntent.putExtra("picture", "");
 			mIntent.putExtra("path", "");
 			mIntent.putExtra("error", e.toString());
@@ -215,45 +214,49 @@ public class CameraPreview extends Activity implements SurfaceHolder.Callback{
 		
 		// store the image of the disk
 		try {
-			if (myMap.compress(CompressFormat.JPEG, quality, jpeg_data))
-			{		
+			if (myMap.compress(CompressFormat.JPEG, quality, jpeg_data)) {		
 				FileOutputStream stream = null;
-				// System.out.println("storeInternal=" + storeInternal);
 				try {
-            	   if (storeInternal) {
-   						// store the picture in the file system /data/data/package/files
+            	   if (sdCardAvail) {
             		   mIntent.putExtra("picture", "");
             		   mIntent.putExtra("path", "");
             		   mIntent.putExtra("error", "cannot store on SD-Card, possibly no SD-Card is present");
             		   setResult(RESULT_OK, mIntent); 
             		   finish();
-
-            		   // Store picture into the preference directory
-//                   		stream = super.openFileOutput(fileNameInt, MODE_WORLD_READABLE); // MODE_PRIVATE
-//                   		fileName = fileNameInt;
             	   } else {
             		   stream = new FileOutputStream(fileNameExt, false);
             		   fileName = fileNameExt;
             	   }
-                    myMap.compress(CompressFormat.JPEG, 100, stream);
+                    if ( myMap.compress(CompressFormat.JPEG, 100, stream) ) {
+                    	Log.i(TAG, "wrote image to "+fileNameExt);
+                    } else {
+                    	Log.e(TAG, "error writing image to "+fileNameExt);
+                    }
                     stream.flush();
-                    stream.close();
 				} catch (Exception e) {
-					Log.e("MyLog1", e.toString());
-					//e.printStackTrace();
+					Log.e(TAG, "error storing image to "+fileNameExt, e);
 					mIntent.putExtra("picture", "");
 					mIntent.putExtra("path", "");
 					mIntent.putExtra("error", e.getMessage());
 					setResult(RESULT_OK, mIntent);
 					finish();
 					return;
+				} finally {
+					if ( stream != null) {
+						try {
+						stream.close();
+						} catch ( IOException e) {
+							Log.e(TAG, "cannot close stream", e);
+						}
+					}
 				}
+			} else {
+				Log.e(TAG, "cannot compress image");
 			}
 		
 			// prepare the result data structure
 			try {
-				if (myMap.compress(CompressFormat.JPEG, quality, jpeg_data))
-				{
+				if (myMap.compress(CompressFormat.JPEG, quality, jpeg_data)) {
 					byte[] code  = jpeg_data.toByteArray();
 					byte[] output = Base64.encodeBase64(code);
 					String js_out = new String(output);
@@ -261,17 +264,17 @@ public class CameraPreview extends Activity implements SurfaceHolder.Callback{
 					mIntent.putExtra("path", fileName);
 					mIntent.putExtra("error", "");
 					setResult(RESULT_OK, mIntent);
-					finish();
-					return;
+				} else {
+					Log.e(TAG, "cannot compress the stream");
 				}
 			} catch(Exception e) {
-	     	   Log.e("MyLog2", e.toString());
+	     	   Log.e(TAG, "error while encoding Base64", e);
 	        } 
 
 			
 			// read the stored image from the file system
         	FileInputStream fIn = null;
-        	if (storeInternal) {
+        	if (sdCardAvail) {
         		fIn = openFileInput(fileName);
         	} else {
         		fIn =new FileInputStream(fileName);
@@ -280,6 +283,7 @@ public class CameraPreview extends Activity implements SurfaceHolder.Callback{
         	try {
         		inBitmap = BitmapFactory.decodeStream(fIn);
         	} catch (Throwable e) {
+        		Log.e(TAG, "cannot decode stream", e);
         		mIntent.putExtra("picture", "");
 				mIntent.putExtra("path", "");
 				mIntent.putExtra("error", e.toString());
@@ -297,7 +301,6 @@ public class CameraPreview extends Activity implements SurfaceHolder.Callback{
 					imView.setImageBitmap(myMap);
 				}
 
-				
 				Context context = mSurfaceView.getContext();
 				CharSequence text = R.string.imageStored + fileName;
 				int duration = Toast.LENGTH_LONG;
@@ -305,13 +308,12 @@ public class CameraPreview extends Activity implements SurfaceHolder.Callback{
 				Toast toast = Toast.makeText(context, text, duration);
 				toast.setGravity(Gravity.TOP|Gravity.LEFT, 0, 0);
 				toast.show();
-				
+			} else {
+				Log.w(TAG, "cannot show image because view 'picview' id="+R.id.picview+" was not found");
 			}
-		}
-		catch(Throwable e)
-		{
-			//e.printStackTrace();
-			Log.e("MyLog3", e.toString());
+		} catch(Throwable e) {
+			// TODO: do better exception handling here......
+			Log.e(TAG, "something went wrong", e);
 			mIntent.putExtra("picture", "");
 			mIntent.putExtra("path", "");
 			mIntent.putExtra("error", e.toString());

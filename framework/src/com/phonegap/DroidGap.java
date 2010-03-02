@@ -307,7 +307,7 @@ public class DroidGap extends Activity {
     	i.putExtra("valueID", valueID);
     	startActivityForResult(i, 0);
     }
-    
+        
     protected void onActivityResult(int requestCode, int resultCode, Intent intent)
     {
     	String data;
@@ -315,15 +315,9 @@ public class DroidGap extends Activity {
     	String error;
     	super.onActivityResult(requestCode, resultCode, intent);
     	
-        // allow sub classes to do a specific result handling
-        if (this instanceof DroidGap && !this.getClass().equals(DroidGap.class)) {
-        	return;
-        }
-    	
-    	if (".CameraPreview".equals(intent.getComponent().getShortClassName())) {
-    		//System.out.println("CameraPreview detected");
-    		if (resultCode == RESULT_OK)
-        	{
+     	String shortName = intent.getComponent().getShortClassName();
+		if ("com.phonegap.CameraPreview".equals(shortName)) {
+    		if (resultCode == RESULT_OK) {
         		data = intent.getStringExtra("picture");   
         		data2 = intent.getStringExtra("path"); 
         		error = intent.getStringExtra("error");
@@ -333,13 +327,11 @@ public class DroidGap extends Activity {
         		} else {
         			launcher.failPicture("Did not complete! reason=" + error, requestCode);
         		}
-        	}
-        	else
-        	{
+        	} else {
         		launcher.failPicture("Did not complete!", requestCode);
         	}
     	}
-    	if (".CameraSetFeature".equals(intent.getComponent().getShortClassName())) {
+    	if ("com.phonegap.CameraSetFeature".equals(shortName)) {
     		// do nothing
     	}
     	
