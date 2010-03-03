@@ -37,16 +37,14 @@ public class BondiGeoListener extends GeoListener{
 		mAppView.loadUrl("javascript:Bondi.geolocation.fail(" + id + ")");
 	}
 	
-	// This stops the listener
-	void stop()
-	{
-		super.stop();
-	}
-
 	public Location getCurrentLocation() {
-		Location loc = mGps.getLocation();
-		if (loc == null)
+		Location loc = null;
+		if ( mGps != null ) {
+			loc = mGps.getLocation();
+		}
+		if (loc == null && mNetwork != null) {
 			loc = mNetwork.getLocation();
+		}
 		return loc;
 	}
 }
