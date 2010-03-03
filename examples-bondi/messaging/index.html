@@ -3,11 +3,9 @@
 <head>
 <script type="text/javascript" src="phonegap.js"></script>
 <script type="text/javascript">
-//import android.widget.Toast;
 
 var smsReceivers = [];
 
-// Get the batteryLevel property of the Battery aspect.
 function testSendSMS(phoneNo, text) {
 	var smsParams = {};
 	smsParams.body = text;
@@ -85,10 +83,6 @@ function getNoOfRegisteredSMSReceivers(){
 	}
 }
 
-function getOwnNumber(){
-	return 01705658739;
-}
-
 </script>
 </head>
 <body>
@@ -96,7 +90,7 @@ function getOwnNumber(){
 <div id="progress"></div>
 <p id="SmsSubscriptions">Currently, no subscriptions.</p>
 <input 	type="text" 	id="phoneNo" name="phoneNo"			value="5554"/> 
-<input 	type="text" 	id="smsMessage" name="smsMessage" 	value="Dit ist eine TestSMS..."/>
+<input 	type="text" 	id="smsMessage" name="smsMessage" 	value="This is a test Message..."/>
 <input 	type="submit" 	onclick="testSendSMS(document.getElementById('phoneNo').value, document.getElementById('smsMessage').value)" value="testSendSMS" /><br></br>
 <input 	type="submit" 	onclick="registerSmsReceiver()" 	value="registerSmsReceiver"/>
 <input	type="submit"	onclick="unregisterSmsReceiver()" 	value="unregisterSmsReceiver" />
