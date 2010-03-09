@@ -50,7 +50,7 @@ import android.os.Build.*;
 public class DroidGap extends Activity {
 	
 	private static final String LOG_TAG = "DroidGap";
-	private WebView appView;
+	protected WebView appView;
 	private LinearLayout root;
 	private String uri;
 	private PhoneGap gap;
@@ -66,19 +66,12 @@ public class DroidGap extends Activity {
 	private DeviceStatus mDeviceStatus;
 	private MessageHandler mMessageHandler;
 	private Storage cupcakeStorage;
-	
-	
-	
+	private CryptoHandler crypto;
+		
     /** Called when the activity is first created. */
 	@Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        
-        // allow only the class DroidGapCameraSub to do a specific initialization
-        if (this.getClass().getSimpleName().equals("DroidGapCamera")) {
-        	return;
-        }
-        
         getWindow().requestFeature(Window.FEATURE_NO_TITLE); 
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN,
                 WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);
@@ -100,8 +93,7 @@ public class DroidGap extends Activity {
         
         WebViewReflect.checkCompatibility();
         
-        /* This changes the setWebChromeClient to log alerts to LogCat! Important for Javascript Debugging */
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.ECLAIR)
+        if (android.os.Build.VERSION.RELEASE.startsWith("2."))
          appView.setWebChromeClient(new EclairClient(this));
         else
         {
@@ -116,16 +108,15 @@ public class DroidGap extends Activity {
         settings.setJavaScriptCanOpenWindowsAutomatically(true);
         settings.setLayoutAlgorithm(LayoutAlgorithm.NORMAL);
         
-//             
-//        setContentView(R.layout.main);        
-//         
-//        appView = (WebView) findViewById(R.id.appView);
         
         Package pack = this.getClass().getPackage();
         String appPackage = pack.getName();
         
         WebViewReflect.setStorage(settings, true, "/data/data/" + appPackage + "/app_database/");
 
+        // Turn on DOM storage!
+        WebViewReflect.setDomStorage(settings);
+        
         /* Bind the appView object to the gap class methods */
         bindBrowser(appView);
         if(cupcakeStorage != null)
@@ -153,11 +144,12 @@ public class DroidGap extends Activity {
     	fs = new FileUtils(appView);
     	netMan = new NetworkManager(this, appView);
     	mCompass = new CompassListener(this, appView);
+    	crypto = new CryptoHandler(appView);    	
 		mFileSystem = new FileSystem(this, appView);
 		mDeviceStatus = new DeviceStatus(this, appView);
 		mMessageHandler = new MessageHandler(this, appView);
     	
-    	// This creates the new javaScript interfaces for PhoneGap
+    	// This creates the new javascript interfaces for PhoneGap
     	appView.addJavascriptInterface(gap, "DroidGap");
     	appView.addJavascriptInterface(geo, "Geo");
     	appView.addJavascriptInterface(bondiGeo, "bGeo");
@@ -167,10 +159,13 @@ public class DroidGap extends Activity {
     	appView.addJavascriptInterface(fs, "FileUtil");
     	appView.addJavascriptInterface(netMan, "NetworkManager");
     	appView.addJavascriptInterface(mCompass, "CompassHook");
+    	appView.addJavascriptInterface(crypto, "GapCrypto");    	
     	appView.addJavascriptInterface(mFileSystem, "FileSystem");
     	appView.addJavascriptInterface(mDeviceStatus, "DStatus");
     	appView.addJavascriptInterface(mMessageHandler, "mMessageHandler");
-    	if (android.os.Build.VERSION.SDK_INT <= android.os.Build.VERSION_CODES.DONUT)
+    	
+    	
+    	if (android.os.Build.VERSION.RELEASE.startsWith("1."))
     	{
     		cupcakeStorage = new Storage(appView);
     		appView.addJavascriptInterface(cupcakeStorage, "droidStorage");
@@ -238,6 +233,7 @@ public class DroidGap extends Activity {
     
 	public final class EclairClient extends GapClient
 	{
+		private String TAG = "PhoneGapLog";
 		private long MAX_QUOTA = 2000000;
 
 		public EclairClient(Context ctx) {
@@ -261,6 +257,13 @@ public class DroidGap extends Activity {
 				quotaUpdater.updateQuota(currentQuota);
 			}
 		}
+		
+		// This is a test of console.log, because we don't have this in Android 2.01
+		public void addMessageToConsole(String message, int lineNumber, String sourceID)
+		{
+			Log.d(TAG, sourceID + ": Line " + Integer.toString(lineNumber) + " : " + message);
+		}
+		
 	}
     	    
 	

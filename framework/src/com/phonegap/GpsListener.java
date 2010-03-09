@@ -91,7 +91,6 @@ public class GpsListener implements LocationListener {
 
 	public boolean hasLocation() {
         return hasData;
-        //return (cLoc != null);
 	}
 
 	public void stop()

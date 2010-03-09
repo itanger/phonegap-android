@@ -115,17 +115,8 @@ public class FileUtils {
     				if (numread <= 0)
                        	break;
     				out.write(buff, 0, numread);
-    				//System.out.println("numread" + numread);
     				i++;
     			} while (true);
-    			// BEGIN MERGE
-    			//byte [] rawData = data.getBytes();
-    			//ByteArrayInputStream in = new ByteArrayInputStream(rawData);    			    			
-    			//FileOutputStream out= new FileOutputStream(FilePath, append);
-    			//byte buff[] = new byte[rawData.length];
-    			//in.read(buff, 0, buff.length);
-    			//out.write(buff, 0, rawData.length);
-    			// END MERGE
     			out.flush();
     			out.close();
     			mView.loadUrl("javascript:navigator.file.winCallback('File written')");

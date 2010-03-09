@@ -22,8 +22,6 @@ public class GeoListener {
 		id = i;
 		interval = time;
 		mCtx = ctx;
-		
-		// BEGIN MERGE BLOCK
 		mGps = null;
 		mNetwork = null;
 		mLocMan = (LocationManager) mCtx.getSystemService(Context.LOCATION_SERVICE);
@@ -32,15 +30,14 @@ public class GeoListener {
 			mGps = new GpsListener(mCtx, interval, this);
 		if (mLocMan.getProvider(LocationManager.NETWORK_PROVIDER) != null)
 			mNetwork = new NetworkListener(mCtx, interval, this);
-        //mGps = new GpsListener(mCtx, interval, this);
-        //mNetwork = new NetworkListener(mCtx, interval, this);
-        // END MERGE BLOCK
-        
         mAppView = appView;
 	}
 	
 	void success(Location loc)
 	{
+		/*
+		 * We only need to figure out what we do when we succeed!
+		 */
 		
 		String params; 
 		/*

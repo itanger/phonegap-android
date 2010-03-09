@@ -163,7 +163,6 @@ public class ContactManager {
 	            if (all)
 	            	mView.loadUrl("javascript:navigator.ContactManager.droidAddContact('" + name + "','" + phoneNumber + "','" + email +"')");	            	
 	            else
-	            	//mView.loadUrl("javascript:navigator.AddressBook.droidFoundContact('" + name + "','" + phoneNumber + "','" + email +"')");
 	            	mView.loadUrl("javascript:navigator.contacts.droidFoundContact('" + name + "','" + phoneNumber + "','" + email +"')");
 	            	
 	            	            
@@ -171,7 +170,6 @@ public class ContactManager {
 	        if (all)
 	        	mView.loadUrl("javascript:navigator.ContactManager.droidDone()");
 	        else
-	        	//mView.loadUrl("javascript:navigator.AddressBook.droidDoneContacts();");
 	        	mView.loadUrl("javascript:navigator.contacts.droidDone();");
 	    }
 	    else
@@ -179,7 +177,6 @@ public class ContactManager {
 	    	if(all)
 	    		mView.loadUrl("javascript:navigator.ContactManager.fail()");
 	    	else
-	    		//mView.loadUrl("javascript:navigator.AddressBook.fail('None found!')");
 	    		mView.loadUrl("javascript:navigator.contacts.fail('None found!')");
 	    }
 	}	
@@ -203,12 +200,10 @@ public class ContactManager {
 	            if(data != null)
 	            {
 	            	data.email = email;	            
-	            	// mView.loadUrl("javascript:navigator.AddressBook.droidFoundContact('" + data.name + "','" + data.phone + "','" + data.email +"')");
 	            	mView.loadUrl("javascript:navigator.Contacts.droidFoundContact('" + data.name + "','" + data.phone + "','" + data.email +"')");
 	            	
 	            }	           
 	        } while (cur.moveToNext());
-	        //mView.loadUrl("javascript:navigator.AddressBook.droidDoneContacts();");
 	        mView.loadUrl("javascript:navigator.contacts.droidDoneContacts();");	        
 	    }	 
 	}		
