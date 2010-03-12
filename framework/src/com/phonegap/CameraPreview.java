@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -106,14 +107,37 @@ public class CameraPreview extends Activity implements SurfaceHolder.Callback{
         	// System.out.println("View: " + v.getWidth() + " " + v.getHeight()); 
         	Parameters params = mCamera.getParameters();
         	
-        	Size bestSize = getBestSize(params.getSupportedPreviewSizes(), width, height);
+        	// due to interface changes in Android 2.0, we use reflection to invoke the method getSupportedPreviewSizes
+        	// this prevents verificationErrors and allows us to invoke the method when the methd is available
+        	// on some device, supportedPreviewSizes is might null, but getBestSize handles this case
+		List<Size> supportedPreviewSizes = null;
+		try {
+			Method methodGetSupportedPreviewSizes = Camera.Parameters.class.getMethod("getSupportedPreviewSizes", new Class[0]);
+			supportedPreviewSizes = (List<Size>) methodGetSupportedPreviewSizes.invoke(params, new Object[0]);
+		} catch (Exception e) {
+            		Log.e(TAG, "methodGetSupportedPreviewSizes failed");
+    		}
+        	
+        	Size bestSize = getBestSize(supportedPreviewSizes, width, height);
         	if (bestSize != null){
-        		// if the camera provides a list of previewsizes, take the one that fits best our parameters
-        		// else just leave all at it is at the moment to prevent crashs
+        		// if the camera provides a list of previewSizes, take the one that fits best our parameters
+        		// else just leave all at it is at the moment to prevent crashes
         		params.setPreviewSize(bestSize.width, bestSize.height);
         	}
         	
-        	bestSize = getBestSize(params.getSupportedPictureSizes(), width, height);
+        	// due to interface changes in Android 2.0, we use reflection to invoke the method getSupportedPreviewSizes
+        	// this prevents verificationErrors and allows us to invoke the method when the method is available
+        	// on some device, supportedPictureSizes is might null, but getBestSize handles this case
+        	List<Size> supportedPictureSizes = null;
+		try {
+			Method methodGetSupportedPictureSizes = Camera.Parameters.class.getMethod("getSupportedPictureSizes", new Class[0]);
+			supportedPreviewSizes = (List<Size>) methodGetSupportedPictureSizes.invoke(params, new Object[0]);
+		} catch (Exception e) {
+			Log.e(TAG, "methodGetSupportedPreviewSizes failed");
+    		}       	
+        		
+        	bestSize = getBestSize(supportedPictureSizes, width, height);
+
         	if (bestSize != null){
         		// if the camera provides a list of picturesizes, take the one that fits best our parameters
         		// else just leave all at it is at the moment to prevent crashs
@@ -206,7 +230,7 @@ public class CameraPreview extends Activity implements SurfaceHolder.Callback{
 		String fileName = "defaultFileName";
     	
 		// store the image in an ByteArray
-    	ByteArrayOutputStream jpeg_data = new ByteArrayOutputStream();
+		ByteArrayOutputStream jpeg_data = new ByteArrayOutputStream();
 		Bitmap myMap = null;
 		try {
 			myMap = BitmapFactory.decodeByteArray(data, 0, data.length);
@@ -277,47 +301,6 @@ public class CameraPreview extends Activity implements SurfaceHolder.Callback{
 				}
 			} catch(Exception e) {
 	     	   Log.e(TAG, "error while encoding Base64", e);
-	        } 
-
-			
-			// read the stored image from the file system
-        	FileInputStream fIn = null;
-        	if (sdCardAvail) {
-        		fIn = openFileInput(fileName);
-        	} else {
-        		fIn =new FileInputStream(fileName);
-        	}
-        	Bitmap inBitmap = null;
-        	try {
-        		inBitmap = BitmapFactory.decodeStream(fIn);
-        	} catch (Throwable e) {
-        		Log.e(TAG, "cannot decode stream", e);
-        		mIntent.putExtra("picture", "");
-				mIntent.putExtra("path", "");
-				mIntent.putExtra("error", e.toString());
-				setResult(RESULT_OK, mIntent);
-				finish();
-				return;
-			}
-
-        	// try to show the image - if no image was found, show the ByteArrayImage
-			ImageView imView = (ImageView)findViewById(R.id.picview);
-			if (imView != null) {
-				if (inBitmap != null) {
-					imView.setImageBitmap(inBitmap);
-				} else {
-					imView.setImageBitmap(myMap);
-				}
-
-				Context context = mSurfaceView.getContext();
-				CharSequence text = R.string.imageStored + fileName;
-				int duration = Toast.LENGTH_LONG;
-
-				Toast toast = Toast.makeText(context, text, duration);
-				toast.setGravity(Gravity.TOP|Gravity.LEFT, 0, 0);
-				toast.show();
-			} else {
-				Log.w(TAG, "cannot show image because view 'picview' id="+R.id.picview+" was not found");
 			}
 		} catch(Throwable e) {
 			// TODO: do better exception handling here......
@@ -381,7 +364,20 @@ public class CameraPreview extends Activity implements SurfaceHolder.Callback{
         }
 
         Camera.Parameters p = mCamera.getParameters();
-        Size bestSize = getBestSize(p.getSupportedPreviewSizes(), w, h);
+        
+        // due to interface changes in Android 2.0, we use reflection to invoke the method getSupportedPreviewSizes
+        // this prevents verificationErrors and allows us to invoke the method when the methd is available
+        // on some device, supportedPreviewSizes is might null, but getBestSize handles this case
+        List<Size> supportedPreviewSizes = null;
+        try {
+        	Method methodGetParameters = Camera.Parameters.class.getMethod("getSupportedPreviewSizes", new Class[0]);
+        	supportedPreviewSizes = (List<Size>) methodGetParameters.invoke(p, new Object[0]);
+        } catch (Exception e) {
+        	Log.e(TAG, "methodGetParameters failed");
+	}
+        
+        Size bestSize = getBestSize(supportedPreviewSizes, w, h);
+
     	if (bestSize != null){
     		// if the camera provides a list of picturesizes, take the one that fits best our parameters
     		// else just leave all at it is at the moment to prevent crashs
