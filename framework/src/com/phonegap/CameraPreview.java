@@ -1,18 +1,15 @@
 package com.phonegap;
 
 import java.io.ByteArrayOutputStream;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
 import org.apache.commons.codec.binary.Base64;
 
 import android.app.Activity;
-import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -25,22 +22,24 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
-import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.MenuItem;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.View.OnClickListener;
 import android.widget.Button;
-import android.widget.ImageView;
-import android.widget.Toast;
+import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 
 public class CameraPreview extends Activity implements SurfaceHolder.Callback{
 
     private static final String TAG = "PhoneGapCamera";
     private SurfaceView mSurfaceView;
     private SurfaceHolder mSurfaceHolder;
+
+    private RelativeLayout root;
     
     Camera mCamera;
     boolean mPreviewRunning = false;
@@ -57,21 +56,43 @@ public class CameraPreview extends Activity implements SurfaceHolder.Callback{
         Log.e(TAG, "onCreate");
 
         getWindow().setFormat(PixelFormat.TRANSLUCENT);
-
-        setContentView(R.layout.preview);
-        mSurfaceView = (SurfaceView)findViewById(R.id.surface);
-
+        
+        RelativeLayout.LayoutParams containerParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.FILL_PARENT, 
+        		ViewGroup.LayoutParams.FILL_PARENT);
+        LinearLayout.LayoutParams surfaceParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.FILL_PARENT, 
+        		ViewGroup.LayoutParams.FILL_PARENT, 0.0F);
+        RelativeLayout.LayoutParams buttonParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, 
+        		ViewGroup.LayoutParams.WRAP_CONTENT);
+        
+        root = new RelativeLayout(this);
+        root.setLayoutParams(containerParams);
+        
+        mSurfaceView = new SurfaceView(this);
+        mSurfaceView.setLayoutParams(surfaceParams);
+        root.addView(mSurfaceView);
+        
+        Button stopButton = new Button(this);
+        stopButton.setText("click");
+        buttonParams.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
+        buttonParams.addRule(RelativeLayout.ALIGN_PARENT_TOP);
+        buttonParams.rightMargin = 5;
+        buttonParams.topMargin = 5;
+        
+        stopButton.setLayoutParams(buttonParams);
+        root.addView(stopButton);
+        
+        setContentView(root);
+        
         mSurfaceHolder = mSurfaceView.getHolder();
         mSurfaceHolder.addCallback(this);
         mSurfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);                    
         mIntent = this.getIntent();
-        
+            	        
         quality = mIntent.getIntExtra("quality", 80);
         width = mIntent.getIntExtra("width", 240);
         height = mIntent.getIntExtra("height", 320);
         
-        Button stopButton = (Button) findViewById(R.id.go);
-        stopButton.setOnClickListener(mSnapListener);
+        stopButton.setOnClickListener(mSnapListener);        
     }
     
     /**
@@ -110,13 +131,13 @@ public class CameraPreview extends Activity implements SurfaceHolder.Callback{
         	// due to interface changes in Android 2.0, we use reflection to invoke the method getSupportedPreviewSizes
         	// this prevents verificationErrors and allows us to invoke the method when the methd is available
         	// on some device, supportedPreviewSizes is might null, but getBestSize handles this case
-		List<Size> supportedPreviewSizes = null;
-		try {
-			Method methodGetSupportedPreviewSizes = Camera.Parameters.class.getMethod("getSupportedPreviewSizes", new Class[0]);
-			supportedPreviewSizes = (List<Size>) methodGetSupportedPreviewSizes.invoke(params, new Object[0]);
-		} catch (Exception e) {
-            		Log.e(TAG, "methodGetSupportedPreviewSizes failed");
-    		}
+        	List<Size> supportedPreviewSizes = null;
+        	try {
+        		Method methodGetSupportedPreviewSizes = Camera.Parameters.class.getMethod("getSupportedPreviewSizes", new Class[0]);
+        		supportedPreviewSizes = (List<Size>) methodGetSupportedPreviewSizes.invoke(params, new Object[0]);
+			} catch (Exception e) {
+	            		Log.e(TAG, "getSupportedPreviewSizes failed");
+	   		}
         	
         	Size bestSize = getBestSize(supportedPreviewSizes, width, height);
         	if (bestSize != null){
@@ -129,11 +150,11 @@ public class CameraPreview extends Activity implements SurfaceHolder.Callback{
         	// this prevents verificationErrors and allows us to invoke the method when the method is available
         	// on some device, supportedPictureSizes is might null, but getBestSize handles this case
         	List<Size> supportedPictureSizes = null;
-		try {
-			Method methodGetSupportedPictureSizes = Camera.Parameters.class.getMethod("getSupportedPictureSizes", new Class[0]);
-			supportedPreviewSizes = (List<Size>) methodGetSupportedPictureSizes.invoke(params, new Object[0]);
-		} catch (Exception e) {
-			Log.e(TAG, "methodGetSupportedPreviewSizes failed");
+			try {
+				Method methodGetSupportedPictureSizes = Camera.Parameters.class.getMethod("getSupportedPictureSizes", new Class[0]);
+				supportedPictureSizes = (List<Size>) methodGetSupportedPictureSizes.invoke(params, new Object[0]);
+			} catch (Exception e) {
+				Log.e(TAG, "getSupportedPictureSizes failed");
     		}       	
         		
         	bestSize = getBestSize(supportedPictureSizes, width, height);
@@ -149,9 +170,7 @@ public class CameraPreview extends Activity implements SurfaceHolder.Callback{
         		mCamera.setParameters(params);
         		mCamera.takePicture(null, null, mPictureCallback);
         	} catch (Throwable e) {
-        		// System.out.println("onClick error:" + e);
-    			
-    			Log.e("MyLog3", e.toString());
+    			Log.e(TAG, e.toString(), e);
     			mIntent.putExtra("picture", "");
     			mIntent.putExtra("path", "");
     			mIntent.putExtra("error", e.toString());
@@ -264,7 +283,9 @@ public class CameraPreview extends Activity implements SurfaceHolder.Callback{
                     } else {
                     	Log.e(TAG, "error writing image to "+fileNameExt);
                     }
-                    stream.flush();
+                    if ( stream != null ) {
+                    	stream.flush();
+                    }
 				} catch (Exception e) {
 					Log.e(TAG, "error storing image to "+fileNameExt, e);
 					mIntent.putExtra("picture", "");
@@ -373,8 +394,8 @@ public class CameraPreview extends Activity implements SurfaceHolder.Callback{
         	Method methodGetParameters = Camera.Parameters.class.getMethod("getSupportedPreviewSizes", new Class[0]);
         	supportedPreviewSizes = (List<Size>) methodGetParameters.invoke(p, new Object[0]);
         } catch (Exception e) {
-        	Log.e(TAG, "methodGetParameters failed");
-	}
+        	Log.e(TAG, "getSupportedPreviewSizes failed");
+        }
         
         Size bestSize = getBestSize(supportedPreviewSizes, w, h);
 
