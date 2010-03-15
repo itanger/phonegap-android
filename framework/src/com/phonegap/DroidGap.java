@@ -338,6 +338,8 @@ public class DroidGap extends Activity {
         	} else {
         		launcher.failPicture("Did not complete!", requestCode);
         	}
+    	} else {
+    		launcher.failPicture("Did not complete!", requestCode);
     	}
     	if ("com.phonegap.CameraSetFeature".equals(shortName)) {
     		// do nothing
