@@ -318,7 +318,12 @@ public class DroidGap extends Activity {
     	String error;
     	super.onActivityResult(requestCode, resultCode, intent);
     	
-     	String shortName = intent.getComponent().getShortClassName();
+     	String shortName;
+     	if ( intent != null && intent.getComponent() != null) {
+     		shortName = intent.getComponent().getShortClassName();
+     	} else {
+     		shortName = "";
+     	}
 		if ("com.phonegap.CameraPreview".equals(shortName)) {
     		if (resultCode == RESULT_OK) {
         		data = intent.getStringExtra("picture");   
