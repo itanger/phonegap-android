@@ -1,6 +1,7 @@
 package com.phonegap;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Method;
@@ -219,11 +220,12 @@ public class CameraPreview extends Activity implements SurfaceHolder.Callback{
     {
 		// generate a valid file name
     	Date myDate = new Date();
-		String dateString =  1900 + myDate.getYear() + "";
+		String dateString =  1900 + myDate.getYear() + "-";
 		if (myDate.getMonth() < 9) {
 			dateString += "0";
 		}
 		dateString += myDate.getMonth() + 1;
+		dateString += "-";
 		if (myDate.getDate() < 10) {
 			dateString += "0";
 		}
@@ -232,10 +234,12 @@ public class CameraPreview extends Activity implements SurfaceHolder.Callback{
 			dateString += "0";
 		}
 		dateString += myDate.getHours();
+		dateString += ".";
 		if (myDate.getMinutes() < 10) {
 			dateString += "0";
 		}
 		dateString += myDate.getMinutes();
+		dateString += ".";
 		if (myDate.getSeconds() < 10) {
 			dateString += "0";
 		}
@@ -245,7 +249,7 @@ public class CameraPreview extends Activity implements SurfaceHolder.Callback{
 		String mediaState = Environment.getExternalStorageState();
 		// System.out.println("mediaState=" + mediaState);
 		boolean sdCardAvail = !"mounted".equals(mediaState);
-		String fileNameExt = Environment.getExternalStorageDirectory() + "/picture" + dateString + ".jpg";
+		String fileNameExt = Environment.getExternalStorageDirectory() + "/DCIM/Camera/" + dateString + ".jpg";
 		String fileName = "defaultFileName";
     	
 		// store the image in an ByteArray
@@ -275,6 +279,12 @@ public class CameraPreview extends Activity implements SurfaceHolder.Callback{
             		   setResult(RESULT_OK, mIntent); 
             		   finish();
             	   } else {
+            		   // if the image directory does not exist, try to create it
+            		   File imageDirectory = new File(fileNameExt).getParentFile();
+            		   if (!imageDirectory.exists()) {
+            			   imageDirectory.mkdirs();
+            		   }
+            		   // store the image in the image directory
             		   stream = new FileOutputStream(fileNameExt, false);
             		   fileName = fileNameExt;
             	   }
