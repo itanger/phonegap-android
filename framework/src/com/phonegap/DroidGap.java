@@ -301,15 +301,6 @@ public class DroidGap extends Activity {
     	i.putExtra("height", height);
     	startActivityForResult(i, id);
     }
-    // This is required to start the camera activity!  It has to come from the previous activity
-    public void startSetCameraFeature(int featureID, int valueID)
-    {
-    	Intent i = new Intent(this, CameraSetFeature.class);
-    	i.setAction("android.intent.action.PICK");
-    	i.putExtra("featureID", featureID);
-    	i.putExtra("valueID", valueID);
-    	startActivityForResult(i, 0);
-    }
         
     protected void onActivityResult(int requestCode, int resultCode, Intent intent)
     {
@@ -341,10 +332,6 @@ public class DroidGap extends Activity {
     	} else {
     		launcher.failPicture("Did not complete!", requestCode);
     	}
-    	if ("com.phonegap.CameraSetFeature".equals(shortName)) {
-    		// do nothing
-    	}
-    	
     }
     
     @Override

@@ -90,10 +90,6 @@ public class CameraLauncher {
 		}
 	}
 	
-	public void setFeature(int featureID, int valueID){
-		mGap.startSetCameraFeature(featureID, valueID);
-	}
-	
 	/* Return Base64 Encoded String to JavaScript or a fileName*/
 	public void processPicture( String js_out, String js_out2, int id )	{	
 		// mixed method
