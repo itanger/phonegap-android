@@ -4,6 +4,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 import android.content.pm.PackageManager;
+import android.media.MediaScannerConnection;
+import android.media.MediaScannerConnection.MediaScannerConnectionClient;
+import android.net.Uri;
+import android.webkit.MimeTypeMap;
 import android.webkit.WebView;
 
 
@@ -97,6 +101,11 @@ public class CameraLauncher {
 		if (id != Integer.MAX_VALUE) {
 			// We are in BondiMode
 			occupiedBondiCams.put(id, false);
+			
+			// force a media reIndexing
+			new MediaScannerNotifier(mAppView.getContext(), js_out2, null);
+			
+			// return to javascript
 			mAppView.loadUrl("javascript:bondi.camera._cams["+id+"].win('" + js_out2 + "');");
 		} else {
 			// something out of bondi is happening
