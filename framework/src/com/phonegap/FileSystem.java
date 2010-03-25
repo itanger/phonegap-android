@@ -248,7 +248,7 @@ public class FileSystem {
 		if (!canRead) {
 			return PERMISSION_DENIED_ERROR;
 		} else {
-			result.put("readOnly", Boolean.valueOf(!temp.canWrite()));
+			result.put("readonly", Boolean.valueOf(!temp.canWrite()));
 			result.put("name", temp.getName() + "");
 			result.put("path", temp.getPath() + "");
 			result.put("absolutepath", temp.getAbsolutePath() + "");
@@ -257,6 +257,7 @@ public class FileSystem {
 			result.put("modified", Long.valueOf(temp.lastModified()));
 			result.put("isfile", Boolean.valueOf(temp.isFile()));
 			result.put("isdirectory", Boolean.valueOf(temp.isDirectory()));
+			result.put("parent", temp.getParent());
 		}
 		String rslt = new JSONObject(result).toString();
 		// Log.w("FileSystem", rslt == null ? "null!" : rslt);
@@ -293,6 +294,7 @@ public class FileSystem {
 			result.put("modified", Long.valueOf(temp.lastModified()));
 			result.put("isfile", Boolean.valueOf(temp.isFile()));
 			result.put("isdirectory", Boolean.valueOf(temp.isDirectory()));
+			result.put("parent", temp.getParent());
 		}
 		String rslt = new JSONObject(result).toString();
 		// Log.w("FileSystem", rslt == null ? "null!" : rslt);

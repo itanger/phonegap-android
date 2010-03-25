@@ -6,8 +6,8 @@
  * 
  */
 //bondi
-if (typeof(bondi) != 'object')
-	bondi = {};
+//if (typeof(bondi) != 'object')
+//	bondi = {};
 
 GenericError = function(code) {
 	this.code = code;
@@ -1946,6 +1946,7 @@ FileSystemManager.prototype.resolve = function(location) {
 		result.modified = returnvalue["modified"];
 		result.isFile = returnvalue["isfile"];
 		result.isDirectory = returnvalue["isdirectory"];
+		result.parent = returnvalue["parent"];
 
 		return result;
 	}
@@ -2072,7 +2073,8 @@ BondiFile.prototype.resolve = function(location) {
 		result.modified = returnvalue["modified"];
 		result.isFile = returnvalue["isfile"];
 		result.isDirectory = returnvalue["isdirectory"];
-		result.parent = this;
+		result.parent = returnvalue["parent"];
+		
 		return result;
 	}
 }
@@ -2186,6 +2188,7 @@ BondiFile.prototype.createDirectory = function(dirPath) {
 		result.modified = returnvalue["modified"];
 		result.isFile = returnvalue["isfile"];
 		result.isDirectory = returnvalue["isdirectory"];
+		result.parent = returnvalue["parent"];
 		
 		console.log("isDirectory=" + result.isDirectory);
 		
@@ -2223,6 +2226,7 @@ BondiFile.prototype.createFile = function(filePath){
 		result.modified = returnvalue["modified"];
 		result.isFile = returnvalue["isfile"];
 		result.isDirectory = returnvalue["isdirectory"];
+		result.parent = returnvalue["parent"];
 		
 		return result;
 	}	
