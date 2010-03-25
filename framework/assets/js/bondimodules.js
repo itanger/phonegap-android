@@ -949,8 +949,8 @@ DeviceStatusManager.prototype.setupBondiVoc = function(){
 	osProps.push("language", "version", "name", "vendor");
 
 	var osImplementedProps = [];
-	osImplementedProps.push("language", "version", "name");
-
+	osImplementedProps.push("language", "version", "name", "vendor");
+	
 	var osComps = [];
 	var osComp_default = new Component("_default", false);
 	var osComp_active = new Component("_active", true);
@@ -1728,6 +1728,8 @@ DeviceStatusManager.prototype.getPropertyValue = function(propertyRef){
 			return this.Device.name;
 		} else if (property == "language"){
 			return DStatus.getLanguage();
+		} else if (property == "vendor"){
+			return "Google Inc.";
 		} else {
 			var error = new DeviceAPIError();
 			error.code = error.NOT_FOUND_ERROR;
