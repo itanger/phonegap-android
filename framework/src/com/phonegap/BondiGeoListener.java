@@ -12,10 +12,20 @@ public class BondiGeoListener extends GeoListener{
 	{
 		super(i, ctx, time, appView);
 		mAppView = appView;
+		
+		
+		//After creation now let's make a first location-check, to get warm
+		Location loc = null;
+		if ( mGps != null ) {
+			loc = mGps.getLocation();
+		}
+		if (loc == null && mNetwork != null) {
+			loc = mNetwork.getLocation();
+		}
+		success(loc);
 	}
 	
 	void success(Location loc){
-		
 		String params; 
 		/*
 		 * Build the giant string to send back to Javascript!
