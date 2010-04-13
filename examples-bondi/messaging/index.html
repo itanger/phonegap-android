@@ -9,13 +9,13 @@ var smsReceivers = [];
 function testSendSMS(phoneNo, text) {
 	var smsParams = {};
 	smsParams.body = text;
-	smsParams.recipients = [];
-	smsParams.recipients.push(phoneNo);
+	smsParams.to = [];
+	smsParams.to.push(phoneNo);
 
 	try{
 		var newsms = bondi.messaging.createSMS(smsParams);
 	
-		bondi.messaging.sendSMS(this.success, this.failure, newsms);
+		bondi.messaging.sendSMS(this.success, this.failure, newsms, false);
 	} catch (error){
 		alert("Error with code: " + error.code + "\n" + "Message reads: " + error.message);
 	}
@@ -32,13 +32,19 @@ this.failure = function(error){
 
 function registerSmsReceiver(){
 	
-	try{
-		var key = bondi.messaging.subscribeToSMS(
-				function(message) { alert("SMS Received successfully: " + message.getProperty("body")); }
-				, null, false);
+	try{		
+		var key;
+		bondi.messaging.subscribeToSMS(
+				function(success) {
+					key = success; 
+					this.smsReceivers.push(key);
+					document.getElementById("SmsSubscriptions").innerHTML =  "Registered SMS-Receivers: " + this.smsReceivers.length + "<br />";
+					},
+				function(error) {alert("error subscribing to sms: " + error.name + " " + error.message)},
+				function(message) { alert("SMS Received successfully: " + message.getProperty("body")); },
+				{}, 
+				false);
 		//Toast.makeText(context, "Receiver for Sms Registered", Toast.LENGTH_LONG).show();
-		this.smsReceivers.push(key);
-		document.getElementById("SmsSubscriptions").innerHTML =  "Registered SMS-Receivers: " + this.smsReceivers.length + "<br />";
 	} catch (error) {
 		alert("Error with code: " + error.code + "\n" + "Message reads: " + error.message);
 	}		
