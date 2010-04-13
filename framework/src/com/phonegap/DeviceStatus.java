@@ -36,6 +36,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.hardware.SensorManager;
 import android.os.BatteryManager;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.OrientationEventListener;
 import android.webkit.WebView;
@@ -96,7 +97,17 @@ public class DeviceStatus {
 
 	
 	public void init() {
-
+		
+	}
+	
+	/**
+	 * this method returns the phonenumber of this device
+	 * @return the telephoneNo. of this device
+	 */
+	public String getOwnNumber(){
+		TelephonyManager mTelephonyMgr = (TelephonyManager) mCtx.getSystemService(Context.TELEPHONY_SERVICE);
+		String phoneNumber = mTelephonyMgr.getLine1Number();
+		return phoneNumber;
 	}
 	
 	/**

@@ -31,6 +31,8 @@ PendingOperation = function() {
 PendingOperation.prototype.cancel = function() {
 	return false;
 }
+PendingOperation.prototype.wait = function() {
+}
 
 function CameraManager() {
 	this._cams = [];
@@ -386,7 +388,7 @@ BondiGeolocation.prototype.getCurrentPosition = function(successCallback, errorC
 	// time in milliseconds that the gps-system might potentially rest between
 	// updates to conserve power
 	var maximumAge = 0;
-	var timeout = 100;
+	var timeout = 1000;
 
 	// Check Maximum Age option exists
 	if (typeof options != "undefined" && options != null){
@@ -483,13 +485,7 @@ BondiGeolocation.prototype.getCurrentPosition = function(successCallback, errorC
 		}
 	}
 
-	bGeo.start(timeout, key);
-	// now mark this listener as oneShot so it's removed after the first
-	// success/error
-	if (typeof this.listeners[key] == "undefined"){
-		this.listeners[key] = {};
-	}
-	this.listeners[key].oneShot = "true";
+	bGeo.getCurrentLocation(key);
 }
 
 
@@ -527,15 +523,15 @@ BondiGeolocation.prototype.getLastKnownPosition = function(){
 		var loc = bGeo.getLastKnownLocation();
 		var coords;
 		if (loc == null){
-			coords = new BondiCoordinates("notReceivedYet", "notReceivedYet", "notReceivedYet", "notReceivedYet", "notReceivedYet", "notReceivedYet", "notReceivedYet");
-			this.lastPosition = new BondiPosition(coords, "notReceivedYet");
+			coords = new Coordinates("notReceivedYet", "notReceivedYet", "notReceivedYet", "notReceivedYet", "notReceivedYet", "notReceivedYet", "notReceivedYet");
+			this.lastPosition = new Position(coords, "notReceivedYet");
 		} else {
 			/*
 			 * altitudeAccuracy: as this value isn't supported seperatedly by the Android.location.Location class
 			 * so the general accuracy is used for it
 			 */
-			coords = new BondiCoordinates(loc.getLatitude(), loc.getLongitude(), loc.getAltitude(), loc.getAccuracy(), loc.getAccuracy(), loc.getBearing(), loc.getSpeed());
-			this.lastPosition = new BondiPosition(coords, loc.timestamp);
+			coords = new Coordinates(loc.getLatitude(), loc.getLongitude(), loc.getAltitude(), loc.getAccuracy(), loc.getBearing(), loc.getSpeed(), loc.getAccuracy());
+			this.lastPosition = new Position(coords, loc.timestamp);
 		}
 	}
 	return this.lastPosition;
@@ -593,7 +589,7 @@ BondiGeolocation.prototype.watchPosition = function(successCallback, errorCallba
 				}
 			}
 		}
-	} // END Argumentchecking and errorhandling
+	} // END ArgumentChecking and errorHandling
 
 	if (typeof this.listeners == "undefined"){
 		this.listeners = [];
@@ -628,6 +624,7 @@ BondiGeolocation.prototype.watchPosition = function(successCallback, errorCallba
 		}, timeout);
 
 		this.listeners[key].timer = timer;
+		
 		if (maximumAge > timeout){
 			return bGeo.start(timeout, key);
 		} else {
@@ -638,49 +635,6 @@ BondiGeolocation.prototype.watchPosition = function(successCallback, errorCallba
 	}
 }
 
-function BondiPosition(bondiCoords, timestampParam) {
-	this.coords = bondiCoords;
-	if (typeof timestampParam == "undefined" || timestampParam == null){
-		this.timestamp = new Date().getTime();
-	} else {
-		this.timestamp = timestampParam;
-	}
-}
-
-function BondiCoordinates(lat, lng, alt, acc, altacc, head, vel){
-
-	/**
-	 * The latitude of the position.
-	 */
-	this.latitude = lat;
-	/**
-	 * The longitude of the position,
-	 */
-	this.longitude = lng;
-	/**
-	 * The accuracy of the position.
-	 */
-	this.accuracy = acc;
-
-	/**
-	 * The accuracy of the altitude of this position.
-	 */
-	this.altitudeAccuracy = altacc;
-
-	/**
-	 * The altitude of the position.
-	 */
-	this.altitude = alt;
-	/**
-	 * The direction the device is moving at the position.
-	 */
-	this.heading = head;
-	/**
-	 * The velocity with which the device is moving at the position.
-	 */
-	this.speed = vel;
-}
-
 
 /*
  * This Method is called whenever a new position comes in through
@@ -688,41 +642,45 @@ function BondiCoordinates(lat, lng, alt, acc, altacc, head, vel){
  */
 BondiGeolocation.prototype.success = function(key, lat, lng, alt, acc, altacc, head, vel, stamp)
 {
-	var coords = new BondiCoordinates(lat, lng, alt, acc, altacc, head, vel);
-	var loc = new BondiPosition(coords, stamp);
+	var coords = new Coordinates(lat, lng, alt, acc, head, vel, altacc);
+	var loc = new Position(coords, stamp);
 	this.lastPosition = loc;
 
 	if (typeof this.listeners[key] != "undefined"){
-		if (this.listeners[key].oneShot == "true"){
-			if (this.listeners[key].timer != null){
-				clearTimeout(this.listeners[key].timer);
-				this.listeners[key].timer = null;
-			}
-			this.listeners[key].oneShot = "false";
-			bGeo.stop(key);
-		}
-	} else {
-		// listener is periodic subscription... maximumAge shouldn't be a
-		// problem with that but somewhere is has to be checked doesn't it?'
-		if (typeof this.listeners[key] == "false"){
-			if (typeof this.listeners[key].maximumAge != null){
-				var periodicLoc = this.checkAgeOfLastKnownLocation(this.listeners[key].maximumAge);
-				if (periodicLoc == null){
-					// lastKnownPosition is older than maximumAge
-					var error = new PositionError();
-					error.code = PositionError.POSITION_UNAVAILABLE;
-					error.message = "No position avaible with age < than maximumAge";
-					this.listeners[key].fail(error);
+		if (this.listeners[key] != "deleted"){
+			if (this.listeners[key].oneShot == "true"){
+				if (this.listeners[key].timer != null){
+					clearTimeout(this.listeners[key].timer);
+					this.listeners[key].timer = null;
+				}
+				this.listeners[key].success(this.lastPosition);
+				// now let's just delete this listener
+				this.listeners[key] = "deleted";
+				return;
+			} else {
+				// listener is periodic subscription... maximumAge shouldn't be a
+				// problem with that but somewhere is has to be checked doesn't it?'
+				if (typeof this.listeners[key].maximumAge != null){
+					if (this.listeners[key].maximumAge > 0){
+						// if maximumAge == 0 it would mean that new data is wanted.
+						// Assumption: all data that is incoming here is up to date as far as it can possibly be
+						var periodicLoc = this.checkAgeOfLastKnownLocation(this.listeners[key].maximumAge);
+						if (periodicLoc == null){
+							// lastKnownPosition is older than maximumAge
+							var error = new PositionError();
+							error.code = PositionError.POSITION_UNAVAILABLE;
+							error.message = "No position avaible with age < than maximumAge";
+							this.listeners[key].fail(error);
+							return;
+						} 
+					}
+					this.listeners[key].success(this.lastPosition);
 					return;
-				} else {
-					this.lastPosition = periodicLoc;
 				}
 			}
 		}
 	}
 
-
-	this.listeners[key].success(this.lastPosition);
 }
 
 BondiGeolocation.prototype.fail = function(key)
@@ -767,7 +725,7 @@ PhoneGap.addConstructor(function() {
 });
 
 
-DeviceStatusManager.prototype.BONDI_VOCABULARY = "http://bondi.omtp.org/1.0/apis/vocabulary.htm";
+DeviceStatusManager.prototype.BONDI_VOCABULARY = "http://bondi.omtp.org/1.1/apis/vocabulary.htm";
 DeviceStatusManager.prototype.BATTERY = "Battery";
 DeviceStatusManager.prototype.OS = "OperatingSystem";
 DeviceStatusManager.prototype.Device = new Device();
@@ -950,7 +908,7 @@ DeviceStatusManager.prototype.setupBondiVoc = function(){
 
 	var osImplementedProps = [];
 	osImplementedProps.push("language", "version", "name", "vendor");
-	
+
 	var osComps = [];
 	var osComp_default = new Component("_default", false);
 	var osComp_active = new Component("_active", true);
@@ -1555,6 +1513,9 @@ DeviceStatusManager.prototype.propertyChanged = function(key, propertyValue){
 		if ((now - lastTime) > minTimeout){
 			// we are allowed to call
 			record.callBack.onPropertyChange(record.propRef, propertyValue);
+			// probably better: callback is a function and not an object
+			//  record.callBack(record.propRef, propertyValue);
+			
 			// store last time we called
 			record.lastCallTime = now;
 		} 
@@ -1931,7 +1892,7 @@ FileSystemManager.prototype.getRootLocations = function() {
  * @return an file object representing the location
  * @throws
  */
-FileSystemManager.prototype.resolve = function(location) {
+FileSystemManager.prototype.resolveSynchron = function(location) {
 	var returnstring = FileSystem.resolve(location);
 	var returnvalue = eval("(" + returnstring + ")");
 	if (returnvalue["error"] != null) {
@@ -1952,6 +1913,41 @@ FileSystemManager.prototype.resolve = function(location) {
 
 		return result;
 	}
+}
+/**
+ * Resolves a root location.
+ * 
+ * @param the
+ *            location
+ * @return an file object representing the location
+ * @throws PERMISSION_DENIED_ERROR when access is denied by the security policy.
+ * @throws INVALID_ARGUMENT_ERROR if invalid location or invalid mode was given. 
+ */
+FileSystemManager.prototype.resolve = function(successCallback, errorCallback, location, mode) {
+	
+	// check the parameter
+	if (typeof successCallback != "function") {
+		throw new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR);   
+	}
+	if (typeof errorCallback != "function") {
+		throw new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR);   
+	}
+	if (typeof mode != "undefined") {
+		mode = "r";
+	}
+	setTimeout(function() {
+		try {
+			var mydoc = bondi.filesystem.resolveSynchron(location);
+			if (mode == "r") {
+				mydoc.readOnly = true;
+			}
+			successCallback(mydoc);
+		} catch (e)	{
+			errorCallback(e);
+		}
+	}, 1);
+
+	return new PendingOperation();
 }
 /**
  * Registers a fileSystem event listener.
@@ -2075,8 +2071,7 @@ BondiFile.prototype.resolve = function(location) {
 		result.modified = returnvalue["modified"];
 		result.isFile = returnvalue["isfile"];
 		result.isDirectory = returnvalue["isdirectory"];
-		result.parent = returnvalue["parent"];
-		
+		result.parent = this;
 		return result;
 	}
 }
@@ -2190,7 +2185,6 @@ BondiFile.prototype.createDirectory = function(dirPath) {
 		result.modified = returnvalue["modified"];
 		result.isFile = returnvalue["isfile"];
 		result.isDirectory = returnvalue["isdirectory"];
-		result.parent = returnvalue["parent"];
 		
 		console.log("isDirectory=" + result.isDirectory);
 		
@@ -2228,7 +2222,6 @@ BondiFile.prototype.createFile = function(filePath){
 		result.modified = returnvalue["modified"];
 		result.isFile = returnvalue["isfile"];
 		result.isDirectory = returnvalue["isdirectory"];
-		result.parent = returnvalue["parent"];
 		
 		return result;
 	}	
@@ -2244,7 +2237,7 @@ BondiFile.prototype.createFile = function(filePath){
  * @throws (SecurityError,
  *             DeviceAPIError)
  */
-BondiFile.prototype.deleteDirectory = function(recursive) {
+BondiFile.prototype.deleteDirectorySynchron = function(recursive) {
 	var ret = FileSystem.deleteDirectory(this.absolutePath, recursive + '');
 	if (ret == 'true' || ret == 'false')
 		return ret;
@@ -2252,6 +2245,36 @@ BondiFile.prototype.deleteDirectory = function(recursive) {
 	throw new DeviceAPIError(returnvalue["error"]);
 
 }
+/**
+ * Deletes this directory.
+ * 
+ * @param in
+ *            boolean recursive
+ * @return boolean
+ * @throws (SecurityError,
+ *             DeviceAPIError)
+ */
+BondiFile.prototype.deleteDirectory = function(successCallback, errorCallback, recursive) {
+	
+	// check the parameter
+	if (typeof successCallback != "function") {
+		throw new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR);   
+	}
+	if (typeof errorCallback != "function") {
+		throw new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR);   
+	}
+	setTimeout(function() {
+		try {
+			var ret = bondi.filesystem.deleteDirectorySynchron(recursive);
+			successCallback(ret);
+		} catch (e)	{
+			errorCallback(e);
+		}
+	}, 1);
+
+	return new PendingOperation();
+}
+
 
 /**
  * Deletes this file.
@@ -2492,8 +2515,8 @@ function MessagingManager() {
 }
 
 MessagingManager.prototype.INBOX_FOLDER = 0;
-MessagingManager.prototype.OUTBOX_FOLDER = 1;
-MessagingManager.prototype.SENT_FOLDER = 2;
+MessagingManager.prototype.SENT_FOLDER =1;
+MessagingManager.prototype.OUTBOX_FOLDER = 2;
 MessagingManager.prototype.DRAFTS_FOLDER = 3;
 
 // array for callBack data to allow reports of success or failure
@@ -2509,7 +2532,7 @@ MessagingManager.prototype.smsExclusives = [];
  * Supported fields are:
  * 	smsParams.body 	the actual message
  * 	smsParams.store	true or false <- should this message be stored?
- * 	smsParams.recipients	list of recipients for this message, separated by ";"
+ * 	smsParams.to	list of recipients for this message, separated by ";"
  * @throws DeviceAPIError
  */
 MessagingManager.prototype.createSMS = function(smsParams) {
@@ -2523,26 +2546,31 @@ MessagingManager.prototype.createSMS = function(smsParams) {
 		if (typeof smsParams.store != "undefined"){
 			newsms.setProperty("store", smsParams.store);
 		}
-		if (typeof smsParams.recipients != "undefined"){
-			snippTheRecipients(newsms, smsParams.recipients);
+		if (typeof smsParams.to != "undefined"){
+			if (smsParams.to.length >= 1){
+				for (var i = 0; i < smsParams.to.length; i++){
+					newsms.appendRecipient(smsParams.to[i]);
+				}
+			} else {
+				var error = new DeviceAPIError();
+				error.code = error.INVALID_ARGUMENT_ERROR;
+				error.message = "there must be at least one recipient for this sms";
+				throw error;
+			}
 		}
 		
 		if (smsParams.store == true){
-			mMessageHandler.storeSMS(newsms.datetime, newsms.recipients, newsms.body, this.DRAFTS_FOLDER);
+			mMessageHandler.storeSMS(newsms.datetime, newsms.to, newsms.body, this.DRAFTS_FOLDER);
 		}
-		
+	} else {
+		var error = new DeviceAPIError();
+		error.code = error.INVALID_ARGUMENT_ERROR;
+		error.message = "smsParams must be a map";
+		throw error;
 	}
 	return newsms;
 }
 
-/**
- * this function allows the setting of the sourceAddress for all SMS that will
- * be sent in the future
- * @param the  the own number
- */
-MessagingManager.prototype.setOwnNumber = function(myNumber){
-    mMessageHandler.setOwnNumber(myNumber);
-}
 
 /**
  * Sends a given SMS that was created by the createSMS method and sends it to its recipients.
@@ -2558,9 +2586,31 @@ MessagingManager.prototype.setOwnNumber = function(myNumber){
  * @param successCallback the successCallback
  * @param errorCallback the errorCallvack
  * @param sms the SMS
+ * @param store store the sms
  * @throws SecurityError, DeviceAPIError, MessagingError
  */
-MessagingManager.prototype.sendSMS = function(successCallback, errorCallback, sms){
+MessagingManager.prototype.sendSMS = function(successCallback, errorCallback, sms, store){
+	
+	// check the parameter
+	if (typeof successCallback != "function"){
+		var error = new DeviceAPIError();
+		error.code = error.INVALID_ARGUMENT_ERROR;
+		error.message = "successCallback has to be defined and a function";
+		throw error;
+	} else if (typeof errorCallback != "function"){
+		var error = new DeviceAPIError();
+		error.code = error.INVALID_ARGUMENT_ERROR;
+		error.message = "errorCallback has to be defined and a function";
+		throw error;
+	} else if (typeof sms != "object"){
+		var error = new DeviceAPIError();
+		error.code = error.INVALID_ARGUMENT_ERROR;
+		error.message = "sms has to be defined";
+		throw error;
+	}
+	if (typeof store != "undefined"){
+		sms.store = store;
+	}
 	
 	var callbackData = {};
 	callbackData.success = successCallback;
@@ -2577,8 +2627,8 @@ MessagingManager.prototype.sendSMS = function(successCallback, errorCallback, sm
 		throw error;
 	}
 	
-	for (var i = 0; i < sms.recipients.length; i++){
-		mMessageHandler.sendSMS(sms.recipients[i], sms.body, sms.id, sms.store, key, sms.datetime);
+	for (var i = 0; i < sms.to.length; i++){
+		mMessageHandler.sendSMS(sms.to[i], sms.body, sms.id, sms.store, key, sms.datetime);
 	}
 	
 	sms.folder = this.SENT_FOLDER;
@@ -2636,7 +2686,7 @@ MessagingManager.prototype.smsReceived = function(key, messagebody, from){
 
 /**
  * creates and registers a listener that will be listening for incoming SMS
- * @param listener 	a callbackfunction where received sms should be transfered to
+ * @param listener 	a callBackfunction where received SMS should be transfered to
  * @param filter	might have the fields
  * 			filter.port	all messages have to come through this special port. Will be ignored if null
  * 			filter.sender	all messages have to come from this sender or will be ignored. If null
@@ -2648,7 +2698,7 @@ MessagingManager.prototype.smsReceived = function(key, messagebody, from){
  * @return key	unique identifier for subscribed listener. Can be used for unsubScription of the same listener
  * @throws SecurityError, DeviceAPIError
  */
-MessagingManager.prototype.subscribeToSMS = function(listener, filter, exclusive) {
+MessagingManager.prototype.subscribeToSMSSynchron = function(listener, filter, exclusive) {
 	
 	var subscriptionData = {};
 	subscriptionData.port = null;
@@ -2756,6 +2806,59 @@ MessagingManager.prototype.subscribeToSMS = function(listener, filter, exclusive
 }
 
 /**
+ * creates and registers a listener that will be listening for incoming SMS
+ * @param listener 	a callBackfunction where received SMS should be transfered to
+ * @param filter	might have the fields
+ * 			filter.port	all messages have to come through this special port. Will be ignored if null
+ * 			filter.sender	all messages have to come from this sender or will be ignored. If null
+ * 							this filter-condition will be ignored
+ * @param exclusive	if true no other listener will be allowed to listen with the same filter conditions
+ * 	Caution: using exclusive condition might throw an error if someone is already listening with the same
+ * 	filtering conditions
+ * 
+ * @return key	unique identifier for subscribed listener. Can be used for unsubScription of the same listener
+ * @throws SecurityError, DeviceAPIError
+ */
+MessagingManager.prototype.subscribeToSMS = function(successCallback, errorCallback, listener, filter, exclusive) {
+	if (typeof successCallback != "function"){
+		var error = new DeviceAPIError();
+		error.code = error.INVALID_ARGUMENT_ERROR;
+		error.message = "successCallback has to be defined and a function";
+		throw error;
+	} else if (typeof errorCallback != "function"){
+		var error = new DeviceAPIError();
+		error.code = error.INVALID_ARGUMENT_ERROR;
+		error.message = "errorCallback has to be defined and a function";
+		throw error;
+	} else if (typeof listener != "function"){
+		var error = new DeviceAPIError();
+		error.code = error.INVALID_ARGUMENT_ERROR;
+		error.message = "listener has to be defined and a function";
+		throw error;
+	} else if (typeof filter != "object"){
+		var error = new DeviceAPIError();
+		error.code = error.INVALID_ARGUMENT_ERROR;
+		error.message = "filter must be an object";
+		throw error;
+	} else if (exclusive != true && exclusive != false){
+		var error = new DeviceAPIError();
+		error.code = error.INVALID_ARGUMENT_ERROR;
+		error.message = "exclusive must be a boolean";
+		throw error;
+	}
+
+	setTimeout(function() {
+		try {
+			var ret = bondi.messaging.subscribeToSMSSynchron(listener, filter, exclusive);
+			successCallback(ret);
+		} catch (e)	{
+			errorCallback(e);
+		}
+	}, 1);
+
+	return new PendingOperation();
+}
+/**
  * unsubscribe a listener and stops it from listening for SMS messages
  * @param subscribeHandler unique identifier for the listener. Must be same id 
  * that was returned using subscribeToSMS
@@ -2843,16 +2946,16 @@ function validateSMS(sms){
 		valid = valid + "folder has to be defined and must not be null \n";
 	}
 	
-	if (sms.recipients.length < 1){
+	if (sms.to.length < 1){
 		valid = valid + " sms has no phoneNumber to send to \n";
 	}
 	
-	for (var i = 0; i < sms.recipients.length; i++){
-		if (!mMessageHandler.isPhoneNumber(sms.recipients[i])){
-			valid = valid + sms.recipients[i] + "is not a valid phonenumber \n";
+	for (var i = 0; i < sms.to.length; i++){
+		if (!mMessageHandler.isPhoneNumber(sms.to[i])){
+			valid = valid + sms.to[i] + "is not a valid phonenumber \n";
 		}
 		
-		if (sms.recipients[i] == "" || sms.recipients[i].length == 0 || sms.recipients[i] == null){
+		if (sms.to[i] == "" || sms.to[i].length == 0 || sms.to[i] == null){
 			valid = valid + "all phone numbers must not be empty or null";
 		}
 	}
@@ -2935,7 +3038,7 @@ function SMS(id, datetime, body, store, folder, read)
 		}
 	}
 		
-	this.recipients = [];	
+	this.to = [];	
 }
 
 /**
@@ -2991,7 +3094,7 @@ SMS.prototype.setProperty = function(propertyName, propertyValue) {
  * @param propertyName the property name
  * allowed propertyNames are:
  * 	body 	the actual message
- * 	recipients	returns a list of phoneNumbers to that this message shall be sent separated by ";"
+ * 	to	returns a list of phoneNumbers to that this message shall be sent separated by ";"
  * 	id		the unique id of this message
  * 	read	true or false <- was this message already read?
  * 	store	true or false <- should this message be stored?
@@ -3004,11 +3107,11 @@ SMS.prototype.getProperty = function(propertyName) {
 	
 	if (propertyName == "body"){
 		return this.body;
-	} else if (propertyName == "recipients"){
+	} else if (propertyName == "to"){
 		
 		var reciList = "";
-		for (var i = 0; i < this.recipients.length; i++){
-			reciList = recipients[i] + ";";
+		for (var i = 0; i < this.to.length; i++){
+			reciList = to[i] + ";";
 		}
 		return reciList;
 		
@@ -3025,7 +3128,7 @@ SMS.prototype.getProperty = function(propertyName) {
 	} else {
 		var error = new DeviceAPIError();
 		error.code = DeviceAPIError.INVALID_ARGUMENT_ERROR;
-		error.message = "propertyName has to be one of these: body, recipients, id, read, store, folder, dateTime";
+		error.message = "propertyName has to be one of these: body, to, id, read, store, folder, dateTime";
 		throw error;
 		
 		return null;
@@ -3037,7 +3140,7 @@ SMS.prototype.getProperty = function(propertyName) {
  * returns an array of all recipients this message will be sent to
  */
 SMS.prototype.getRecipients = function() {
-	return this.recipients;
+	return this.to;
 }
 
 /**
@@ -3045,13 +3148,13 @@ SMS.prototype.getRecipients = function() {
  * @param index the index of the recipient.
  */
 SMS.prototype.getRecipient = function(index) {
-	if ((index >= this.recipients.length) || (index < 0)){
+	if ((index >= this.to.length) || (index < 0)){
 		var error = new DeviceAPIError();
 		error.code = error.INVALID_ARGUMENT_ERROR;
-		error.message = "index ( " + index + " ) is out of bounds. MaxIndex at the moment is: " + (this.recipients.length - 1);
+		error.message = "index ( " + index + " ) is out of bounds. MaxIndex at the moment is: " + (this.to.length - 1);
 		throw error;
 	} else {
-		return this.recipients[index];
+		return this.to[index];
 	}
 }
 
@@ -3078,7 +3181,7 @@ SMS.prototype.appendRecipient = function(phoneNumber) {
 	}
 	
 	
-	this.recipients.push(phoneNumber);
+	this.to.push(phoneNumber);
 	return; // void
 }
 
@@ -3086,7 +3189,7 @@ SMS.prototype.appendRecipient = function(phoneNumber) {
  * Delete all recipients currently listed for this message.
  */
 SMS.prototype.clearRecipients = function() {
-	recipients = [];
+	to = [];
 	return; // void
 }
 ///////////
@@ -3105,19 +3208,19 @@ PhoneGap.addConstructor(function() {
  * @param 	a string of recipients separated by ";"
  * @returns an array of recipients 
  */
-function snippTheRecipients(sms, recipients){
+function snippTheRecipients(sms, to){
 	var from = 0;
-	var to = -1;
+	var toPos = -1;
 	
-	while (recipients.length > 0){
-		to = recipients.indexOf(";");
-		if (to == -1){
-			sms.appendRecipient(recipients);
-			recipients = "";
+	while (to.length > 0){
+		toPos = to.indexOf(";");
+		if (toPos == -1){
+			sms.appendRecipient(to);
+			to = "";
 		} else {
-			var newRecepient = recipients.substring(from, to);
+			var newRecepient = to.substring(from, toPos);
 			sms.appendRecipient(newRecipient);
-			recipients = recipients.substring(to + 1, recipients.length);
+			to = to.substring(toPos + 1, to.length);
 		}
 	}	
 }
@@ -3131,7 +3234,8 @@ Bondi.prototype.requestFeature = function (successCallback, errorCallback, name)
 	
     // Including Messaging API
 	if ((name == "http://bondi.omtp.org/api/messaging.sms.send") ||
-    (name == "http://bondi.omtp.org/api/messaging.sms.subscribe")){
+    (name == "http://bondi.omtp.org/api/messaging.sms.subscribe") ||
+    (name == "http://bondi.omtp.org/api/messaging")){
 		if (typeof bondi.messaging == "undefined") bondi.messaging = new MessagingManager();
 		if (typeof Bondi.messagingManager == "undefined") Bondi.messagingManager = bondi.messaging;
     	successCallback("feature " + name + " was successfully instantiated");
@@ -3191,7 +3295,7 @@ Bondi.prototype.requestFeature = function (successCallback, errorCallback, name)
 function BinaryMessage(){
 	this.payload = [];
 	this.port = 0;
-	this.recipients = [];
+	this.to = [];
 }
 
 /**
@@ -3241,11 +3345,11 @@ BinaryMessage.prototype.getProperty = function(propertyName) {
 
 	if (propertyName == "port"){
 		return this.port;
-	} else if (propertyName == "recipients"){
+	} else if (propertyName == "to"){
 
 		var reciList = "";
-		for (var i = 0; i < this.recipients.length; i++){
-			reciList = recipients[i] + ";";
+		for (var i = 0; i < this.to.length; i++){
+			reciList = to[i] + ";";
 		}
 		return reciList;
 
@@ -3254,7 +3358,7 @@ BinaryMessage.prototype.getProperty = function(propertyName) {
 	} else {
 		var error = new DeviceAPIError();
 		error.code = DeviceAPIError.INVALID_ARGUMENT_ERROR;
-		error.message = "propertyName has to be one of these: port, recipients, payload";
+		error.message = "propertyName has to be one of these: port, to, payload";
 		throw error;
 
 		return null;
@@ -3266,7 +3370,7 @@ BinaryMessage.prototype.getProperty = function(propertyName) {
  * returns an array of all recipients this message will be sent to
  */
 BinaryMessage.prototype.getRecipients = function() {
-	return this.recipients;
+	return this.to;
 }
 
 /**
@@ -3274,13 +3378,13 @@ BinaryMessage.prototype.getRecipients = function() {
  * @param index the index of the recipient.
  */
 BinaryMessage.prototype.getRecipient = function(index) {
-	if ((index >= this.recipients.length) || (index < 0)){
+	if ((index >= this.to.length) || (index < 0)){
 		var error = new DeviceAPIError();
 		error.code = error.INVALID_ARGUMENT_ERROR;
-		error.message = "index ( " + index + " ) is out of bounds. MaxIndex at the moment is: " + (this.recipients.length - 1);
+		error.message = "index ( " + index + " ) is out of bounds. MaxIndex at the moment is: " + (this.to.length - 1);
 		throw error;
 	} else {
-		return this.recipients[index];
+		return this.to[index];
 	}
 }
 
@@ -3307,7 +3411,7 @@ BinaryMessage.prototype.appendRecipient = function(phoneNumber) {
 	}
 
 
-	this.recipients.push(phoneNumber);
+	this.to.push(phoneNumber);
 	return; // void
 }
 
@@ -3315,7 +3419,7 @@ BinaryMessage.prototype.appendRecipient = function(phoneNumber) {
  * Delete all recipients currently listed for this message.
  */
 BinaryMessage.prototype.clearRecipients = function() {
-	this.recipients = [];
+	this.to = [];
 	return; // void
 }
 
@@ -3332,8 +3436,8 @@ MessagingManager.prototype.createMMS = function(mmsParams) {
 		if (typeof mmsParams.body != "undefined"){
 			mms.body = body;
 		}
-		if (typeof mmsParams.recipients != "undefined"){
-			mms.recipients = snippTheRecipients(mmsParams.recipients);
+		if (typeof mmsParams.to != "undefined"){
+			mms.to = snippTheRecipients(mmsParams.to);
 		}
 		if (typeof mmsParams.attachments != "undefined"){
 			mms.attachments = snippTheRecipients(mmsParams.attachments);
@@ -3390,9 +3494,9 @@ MessagingManager.prototype.sendMMS = function(successCallback, errorCallback, mm
 	
 	var key = this.callBacks.push(callbackData) -1;
 	//TODO check if mms is actual mms...
-	for (var i = 0; i < mms.recipients.length; i++){
+	for (var i = 0; i < mms.to.length; i++){
 		(String phoneNo, String subject, String message, String attachment, String messageID){
-		mMessageHandler.sendMMS(mms.recipients[i], mms.subject, mms.body, key);
+		mMessageHandler.sendMMS(mms.to[i], mms.subject, mms.body, key);
 	}
 	return new PendingOperation();
 }
@@ -3460,7 +3564,7 @@ function MMS() {
 	
 	this.subject = "newSubject";
 	this.body = "body"; // actual text of message
-	this.recipients = [];
+	this.to = [];
 	this.slides = []; // MMSSlideArray
 	this.attachments = [];
 	
@@ -3492,8 +3596,8 @@ MMS.prototype.setProperty = function(propertyName, propertyValue){
 			this.store = propertyValue;
 		} else if (propertyName == "subject"){
 			this.subject = propertyValue;
-		} else if (propertyName == "recipients"){
-			this.recipients = snippTheRecipients(propertyValue);
+		} else if (propertyName == "to"){
+			this.to = snippTheRecipients(propertyValue);
 		} else if (propertyName == "attachment"){
 			// TODO handle attachment
 			
@@ -3508,7 +3612,7 @@ MMS.prototype.setProperty = function(propertyName, propertyValue){
 	} else {
 		var error = new DeviceAPIError();
 		error.code = error.INVALID_ARGUMENT_ERROR;
-		error.message = "propertyName has to be body, subject, recipients, attachment or store";
+		error.message = "propertyName has to be body, subject, to, attachment or store";
 		throw error;
 	}
 	return; // void
@@ -3523,11 +3627,11 @@ MMS.prototype.getProperty = function(){
 		return this.body;
 	} else if (propertyName == "subject"){
 		return this.subject;
-	} else if (propertyName == "recipients"){
+	} else if (propertyName == "to"){
 		
 		var reciList = "";
-		for (var i = 0; i < this.recipients.length; i++){
-			reciList = recipients[i] + ";";
+		for (var i = 0; i < this.to.length; i++){
+			reciList = to[i] + ";";
 		}
 		return reciList;
 		
@@ -3546,7 +3650,7 @@ MMS.prototype.getProperty = function(){
 	} else {
 		var error = new DeviceAPIError();
 		error.code = DeviceAPIError.INVALID_ARGUMENT_ERROR;
-		error.message = "propertyName has to be one of these: body, recipients, id, read, store, folder, dateTime";
+		error.message = "propertyName has to be one of these: body, to, id, read, store, folder, dateTime";
 		throw error;
 		
 		return null;
@@ -3554,16 +3658,16 @@ MMS.prototype.getProperty = function(){
 }
 
 MMS.prototype.getRecipients = function() {
-	return this.recipients;
+	return this.to;
 }
 MMS.prototype.getRecipient = function(index) {
-	if ((index >= this.recipients.length) || (index < 0)){
+	if ((index >= this.to.length) || (index < 0)){
 		var error = new DeviceAPIError();
 		error.code = error.INVALID_ARGUMENT_ERROR;
-		error.message = "index ( " + index + " ) is out of bounds. MaxIndex at the moment is: " + (this.recipients.length - 1);
+		error.message = "index ( " + index + " ) is out of bounds. MaxIndex at the moment is: " + (this.to.length - 1);
 		throw error;
 	} else {
-		return this.recipients[index];
+		return this.to[index];
 	}
 }
 
@@ -3571,12 +3675,12 @@ MMS.prototype.appendRecipient = function(phoneNumber) {
 	// raises(DeviceAPIError);
 	// TODO check if phoneNumber is "phoneNumber format" and smaller than maxAvaiableSize for that format
 	
-	this.recipients.push(phoneNumber);
+	this.to.push(phoneNumber);
 	return; // void
 }
 
 MMS.prototype.clearRecipients = function() {
-	recipients = [];
+	to = [];
 	return; // void
 }
 
@@ -3637,5 +3741,3 @@ function BinaryMessage() {
 }
 
 */
-
-

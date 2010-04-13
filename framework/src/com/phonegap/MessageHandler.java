@@ -15,6 +15,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.Uri;
 import android.telephony.PhoneNumberUtils;
+import android.telephony.TelephonyManager;
 import android.telephony.gsm.SmsManager;
 import android.telephony.gsm.SmsMessage;
 import android.webkit.WebView;
@@ -113,16 +114,10 @@ public class MessageHandler {
 		this.mCtx = ctx;
 		this.mAppView = appView;
 		this.smsM = SmsManager.getDefault();
+		TelephonyManager mTelephonyMgr = (TelephonyManager) mCtx.getSystemService(Context.TELEPHONY_SERVICE);
+		ownNumber = mTelephonyMgr.getLine1Number();
 	}
 	
-	/**
-	 * sets the sourceAddress for sent sms
-	 * 
-	 * @param ownNumber own phoneNumber or null
-	 */
-	public void setOwnNumber(String ownNumber){
-		this.ownNumber = ownNumber;
-	}
 	
 	/**
 	 * method for sending sms
@@ -485,8 +480,11 @@ public class MessageHandler {
 				for (int i=0; i < messages.length; i++){
 					messages[i] = SmsMessage.createFromPdu((byte[])pdus[i]); 
 
+//					System.out.println("received sms " + messages[i].getDisplayMessageBody());
+//					System.out.println("received sms from " + messages[i].getOriginatingAddress() + " should have been " + this.sender);
+					
 					if (senderIsSet){
-						if (this.sender != messages[i].getOriginatingAddress()){
+						if (this.sender != messages[i].getOriginatingAddress()){							
 							return;
 						}
 					}
