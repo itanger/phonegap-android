@@ -216,7 +216,7 @@ public class BondiDirectoryManager {
 		InputStream in = null;
 		OutputStream out = null;
 		try {
-			System.out.println("Opening Files");
+			//System.out.println("Opening Files");
 			File f1 = new File(origFileName);
 			File f2 = new File(targetFileName);
 		
@@ -231,7 +231,7 @@ public class BondiDirectoryManager {
 			if (!f1.canRead()) {
 				return "copyTo: sourceFile does not exist or is unreadable";
 			}
-			File targetFile = new File(f2.getAbsolutePath(), f1.getName());
+			File targetFile = new File(f2.getAbsolutePath()); //, f1.getName());
 			if (targetFile.canRead() && !overwrite) {
 				return "copyTo: targetFile already exists";
 			}
@@ -258,7 +258,7 @@ public class BondiDirectoryManager {
 			} catch (Exception ignored) {
 			}
 			try {
-				System.out.println("try to close out");
+				//System.out.println("try to close out");
 				if (out != null) 
 					out.close();
 			} catch (Exception ignored) {

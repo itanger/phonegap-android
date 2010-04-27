@@ -28,24 +28,35 @@ public class BondiGeoBroker {
 	
 	public void getCurrentLocation(final String id)
 	{				
-		GeoListener listener = new BondiGeoListener(id, mCtx, 10000, mAppView);
-		Location loc = listener.getCurrentLocation();
-		String params; 
-		/*
-		 * Build the giant string to send back to Javascript!
-		 */
-		
-		/*
-		 * altitudeAccuracy: as this value isn't supported seperatedly by the Android.location.Location class
-		 * so the general accuracy is used for it
-		 */
-		float altitudeAccuracy = loc.getAccuracy();
-		
-		params = loc.getLatitude() + "," + loc.getLongitude() + ", " + loc.getAltitude() + "," + loc.getAccuracy() + "," + altitudeAccuracy +  "," + loc.getBearing();
-		params += "," + loc.getSpeed() + "," + loc.getTime();
-		
-		mAppView.loadUrl("javascript:Bondi.geolocation.success(" + id + "," +  params + ")");
-		listener.stop();
+		try {
+			GeoListener listener = new BondiGeoListener(id, mCtx, 10000, mAppView);
+			Location loc = listener.getCurrentLocation();
+			String params; 
+			if (loc != null){
+				/*
+				 * Build the giant string to send back to Javascript!
+				 */
+
+				/*
+				 * altitudeAccuracy: as this value isn't supported seperatedly by the Android.location.Location class
+				 * so the general accuracy is used for it
+				 */
+				float altitudeAccuracy = loc.getAccuracy();
+
+				params = loc.getLatitude() + "," + loc.getLongitude() + ", " + loc.getAltitude() + "," + loc.getAccuracy() + "," + altitudeAccuracy +  "," + loc.getBearing();
+				params += "," + loc.getSpeed() + "," + loc.getTime();
+
+				mAppView.loadUrl("javascript:bondi.geolocation.success(" + id + "," +  params + ")");
+			} else {
+				mAppView.loadUrl("javascript:bondi.geolocation.fail(" + id + ")");
+			}
+			listener.stop();
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			// call fail if an error was detected.
+			mAppView.loadUrl("javascript:bondi.geolocation.fail(" + id + ")");
+		}
 	}
 	
 	/**

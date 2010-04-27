@@ -77,10 +77,10 @@ public class FileSystem {
 		public void onReceive(Context context, Intent intent) {
 			if ("android.intent.action.MEDIA_MOUNTED"
 					.equals(intent.getAction())) {
-				mView.loadUrl("javascript:bondi.filesystem.mounted('sdcard')");
+				mView.loadUrl("javascript:Bondi.filesystem.mounted('sdcard')");
 			} else {
 				mView
-						.loadUrl("javascript:bondi.filesystem.unmounted('sdcard')");
+						.loadUrl("javascript:Bondi.filesystem.unmounted('sdcard')");
 			}
 		}
 	}
@@ -150,11 +150,12 @@ public class FileSystem {
 				.getExternalStorageDirectory().getAbsolutePath());
 		this.locationsMounted.put("sdcard", Environment
 				.getExternalStorageDirectory().getAbsolutePath());
+		this.locationsMounted.put("images", Environment
+				.getExternalStorageDirectory().getAbsolutePath() + "/DCIM/Camera/");
 		this.locationsMounted.put("temp", Environment
 				.getDownloadCacheDirectory().getAbsolutePath());
 		this.locationsUnmounted.put("wgt:private", Environment
 				.getExternalStorageDirectory().getAbsolutePath());
-
 	}
 
 	/**
@@ -250,7 +251,7 @@ public class FileSystem {
 		} else {
 			result.put("readonly", Boolean.valueOf(!temp.canWrite()));
 			result.put("name", temp.getName() + "");
-			result.put("path", temp.getPath() + "");
+			result.put("path", temp.getParentFile().getAbsolutePath() + "");
 			result.put("absolutepath", temp.getAbsolutePath() + "");
 			result.put("filesize", Long.valueOf(temp.length()));
 			result.put("created", Long.valueOf(temp.lastModified()));
@@ -287,7 +288,7 @@ public class FileSystem {
 			result.put("error", null);
 			result.put("readonly", Boolean.valueOf(!temp.canWrite()));
 			result.put("name", temp.getName());
-			result.put("path", temp.getPath());
+			result.put("path", temp.getParentFile().getAbsolutePath());
 			result.put("absolutepath", temp.getAbsolutePath());
 			result.put("filesize", Long.valueOf(temp.length()));
 			result.put("created", Long.valueOf(temp.lastModified()));
@@ -325,26 +326,32 @@ public class FileSystem {
 	public void copyTo(final String orig, final String target,
 			final boolean overwrite) {
 		Log.w("FileSystem", "copyTo " + orig + " target:" + target);
-//		Thread t = new Thread() {
-//			public void run() {
-				String status = "";
-				try {
-					status = fileManager.copyTo(orig, target, overwrite);
-				} catch (SecurityException e) {
-					status = e.getMessage();
-				}
-				if (status == null) {
-					//System.out.println("Load success");
-					mAppView.loadUrl("javascript:bondi.filesystem.success();");
-				} else {
-					//System.out.println("Load fail");
-					mAppView.loadUrl("javascript:bondi.filesystem.fail('" + status + "');");
-				}
-			}
-//		};
-//		t.start();
-//		return;
-//	}
+
+		String status = "";
+		
+		// check for invalid chars
+		if (target == null || !target.matches("[A-z,0-9_\\-\\/\\ ]+")) {
+			mAppView.loadUrl("javascript:bondi.filesystem.fail(new DeviceAPIError(10004));");
+			return;
+		}
+		
+		// do copy
+		try {
+			status = fileManager.copyTo(orig, target, overwrite);
+		} catch (SecurityException e) {
+			status = e.getMessage();
+		}
+		
+		// callback to javascript
+		if (status == null) {
+			// System.out.println("Load success");
+			mAppView.loadUrl("javascript:bondi.filesystem.success(bondi.filesystem.resolveSynchron('" + target + "'));");
+		} else {
+			// System.out.println("Load fail"); // maybe forward the status
+			// message should be forwarded;
+			mAppView.loadUrl("javascript:bondi.filesystem.fail(new DeviceAPIError(10004));");
+		}
+	}
 
 	/**
 	 * moveTo
@@ -373,9 +380,9 @@ public class FileSystem {
 					success = false;
 				}
 				if (success) {
-					mAppView.loadUrl("javascript:bondi.filesystem.success();");
+					mAppView.loadUrl("javascript:Bondi.filesystem.success();");
 				} else {
-					mAppView.loadUrl("javascript:bondi.filesystem.fail('" + error + "');");
+					mAppView.loadUrl("javascript:Bondi.filesystem.fail('" + error + "');");
 				}
 			}
 		};

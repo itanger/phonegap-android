@@ -18,6 +18,8 @@ import android.telephony.PhoneNumberUtils;
 import android.telephony.TelephonyManager;
 import android.telephony.gsm.SmsManager;
 import android.telephony.gsm.SmsMessage;
+//import android.telephony.SmsManager;
+//import android.telephony.SmsMessage;
 import android.webkit.WebView;
 import android.widget.Toast;
 
@@ -41,32 +43,32 @@ public class MessageHandler {
 	 * The Activity that instantiated this handler
 	 */
 	private Activity mCtx;
-	
+
 	/**
 	 * A manager-class for sending sms
 	 */
 	private SmsManager smsM;
-	
+
 	/**
 	 * the sourceAddress that will be used for sent sms
 	 */
 	private String ownNumber = null;
-	
+
 	/**
 	 * unique ID, used as part of the monitoring of sent sms
 	 */
 	private String SENT = "com.phonegap.MessageHandler#SMS_Sent";
-	
+
 	/**
 	 * unique ID, used as part of the monitoring of delivered sms
 	 */
 	private String DELIVERED = "com.phonegap.MessageHandler#SMS_Delivered";
-	
+
 	/**
 	 * HashMap used to store and retrieve smsReceivers. See subscribeToSms and unsubscribeToSms
 	 */
 	private Map<Long, SmsReceiver> smsReceivers = Collections.synchronizedMap(new HashMap<Long, SmsReceiver>());
-	
+
 	/**
 	 * String constant for monitoring the sending of an sms
 	 * In this case: All went fine
@@ -92,7 +94,7 @@ public class MessageHandler {
 	 * In this case:  The sms couldn't be sent because the antenna/radio was turned off
 	 */
 	public static final String SMS_ERROR_RADIO_OFF = "SMS_RESULT_ERROR_RADIO_OFF";
-	
+
 	/**
 	 * String constant for monitoring the delivery of an sms
 	 * In this case: All went fine
@@ -104,7 +106,7 @@ public class MessageHandler {
 	 */
 	public static final String SMS_DELIVERY_CANCEL = "SMS_RESULT_CANCELED";
 
-	
+
 	/**
 	 * Constructor, set content and appView
 	 * @param ctx		The Activity in which this Handler was instantiated
@@ -117,8 +119,7 @@ public class MessageHandler {
 		TelephonyManager mTelephonyMgr = (TelephonyManager) mCtx.getSystemService(Context.TELEPHONY_SERVICE);
 		ownNumber = mTelephonyMgr.getLine1Number();
 	}
-	
-	
+
 	/**
 	 * method for sending sms
 	 * 
@@ -153,38 +154,38 @@ public class MessageHandler {
 		if (messageParts.size() > 1){
 
 			// Code was commented out because of problems with text-encoding within sendMultipartTextMessage nobody in the community seems to have even a clue what's the problem with android here
-//			ArrayList<PendingIntent> sentPIs = new ArrayList<PendingIntent>();
-//			ArrayList<PendingIntent> deliveryPIs = new ArrayList<PendingIntent>();
-			 
-//			 for (int i = 0; i < messageParts.size(); i++){
-//				 sentPIs.add(PendingIntent.getBroadcast(mCtx, 0, sentIntent, 0));
-//				 deliveryPIs.add(PendingIntent.getBroadcast(mCtx, 0, deliveryIntent, 0));
-//				 System.out.println("Sending: " + messageParts.get(i));
-//			 }
-//			 smsM.sendMultipartTextMessage(phoneNo, ownNumber, messageParts, sentPIs, deliveryPIs);
-			 
+			//			ArrayList<PendingIntent> sentPIs = new ArrayList<PendingIntent>();
+			//			ArrayList<PendingIntent> deliveryPIs = new ArrayList<PendingIntent>();
+
+			//			 for (int i = 0; i < messageParts.size(); i++){
+			//				 sentPIs.add(PendingIntent.getBroadcast(mCtx, 0, sentIntent, 0));
+			//				 deliveryPIs.add(PendingIntent.getBroadcast(mCtx, 0, deliveryIntent, 0));
+			//				 System.out.println("Sending: " + messageParts.get(i));
+			//			 }
+			//			 smsM.sendMultipartTextMessage(phoneNo, ownNumber, messageParts, sentPIs, deliveryPIs);
+
 			for (String messagePart : messageParts){
 				smsM.sendTextMessage(phoneNo, ownNumber, messagePart, sentPI, deliveredPI);
-				 
+
 				deleteSMS(datetime, phoneNo, message);
-				
+
 				if (store){
 					storeSMS(datetime, phoneNo, messagePart, 2);
 				}
-			 }
-			 
-		 } else {
-			 smsM.sendTextMessage(phoneNo, ownNumber, message, sentPI, deliveredPI);
-			 
-			 deleteSMS(datetime, phoneNo, message);
-			 
-			 if (store){
-				 storeSMS(datetime, phoneNo, message, 2);
-			 }
-		 }
+			}
+
+		} else {
+			smsM.sendTextMessage(phoneNo, "me", message, sentPI, null);
+
+			deleteSMS(datetime, phoneNo, message);
+
+			if (store){
+				storeSMS(datetime, phoneNo, message, 2);
+			}
+		}
 	}
-	
-	
+
+
 	/**
 	 * Deletes a sms from the android database
 	 * 
@@ -197,10 +198,10 @@ public class MessageHandler {
 		values.put("date", datetime);
 		values.put("address", phoneNo);
 		values.put("body", message);
-		
+
 		mCtx.getContentResolver().delete(Uri.parse("content://sms/"), "date='" + datetime + "' AND body='" + message + "'", null);
 	}
-	
+
 	/**
 	 * Stores a sms within the android database
 	 * 
@@ -237,15 +238,15 @@ public class MessageHandler {
 			// do nothing
 			break;
 		}
-		
+
 		ContentValues values = new ContentValues();
 		values.put("date", new Date().getDate());
 		values.put("address", phoneNo);
 		values.put("body", message);
 		return mCtx.getContentResolver().insert(place, values);
 	}
-	
-	
+
+
 	/**
 	 * validates a phoneNumber by checking if all characters within the number are dialable
 	 * 
@@ -253,9 +254,9 @@ public class MessageHandler {
 	 * @return			true, if all characters are dialable (checked conditions: ISO-LATIN characters 0-9, *, # , + (no WILD)), false otherwise
 	 */
 	public boolean isPhoneNumber(String phoneNo){
-		
+
 		boolean isValid = true;
-			
+
 		for (int i = 0; i < phoneNo.length(); i++){
 			if (!PhoneNumberUtils.isReallyDialable(phoneNo.charAt(i)) || phoneNo.length() > 15){
 				isValid = false;
@@ -264,13 +265,13 @@ public class MessageHandler {
 		}
 		return isValid;
 	}
-	
-	
+
+
 	/* it turned out this hadn't to be implemented
-	 
+
 	synchronized public void sendMMS(String phoneNo, String subject, String message, String attachment, String messageID){
 //		 Toast.makeText(mCtx.getBaseContext(), "SendSMS: MessageID=" + messageID, Toast.LENGTH_LONG).show();
-		
+
 
 		Intent sentIntent = new Intent(messageID + "#" + SENT);
 		PendingIntent sentPI = PendingIntent.getBroadcast(mCtx, 0, sentIntent, 0);
@@ -281,23 +282,23 @@ public class MessageHandler {
 		this.mCtx.registerReceiver(new SentReceiver(), new IntentFilter(messageID + "#" + SENT));
 		this.mCtx.registerReceiver(new DeliveryReceiver(), new IntentFilter(messageID + "#" + DELIVERED));
 
-		
+
 		Intent mmsIntent = new Intent(Intent.ACTION_SEND); 
 		mmsIntent.putExtra(Intent.EXTRA_SUBJECT, subject);
 		mmsIntent.putExtra(Intent.EXTRA_TEXT, message);
-		
+
 		if (attachment != null){
 			mmsIntent.putExtra(Intent.EXTRA_STREAM, Uri.parse(attachment));
 			mmsIntent.setDataAndType(Uri.parse(attachment), this.getMimeType(attachment));
 		}
-		
+
 		mCtx.startActivity(mmsIntent);
-		
+
 	}
-	
+
 	public String getMimeType(String fileUri){
 		String type = "application/binary";
-		
+
 		if (fileUri.endsWith(".jpg") || fileUri.endsWith(".jpeg") || fileUri.endsWith(".jpe")){
 			type = "image/jpeg";
 		} else if (fileUri.endsWith(".png")){
@@ -305,11 +306,11 @@ public class MessageHandler {
 		} else if (fileUri.endsWith(".txt")){
 			type = "text/plain";
 		}
-		
+
 		return type;
 	}
-	*/
-	
+	 */
+
 	/**
 	 * Registers a listener that will wait for SMS on the given port from the given sender.
 	 * If port or sender are null this conditions will be ignored
@@ -326,8 +327,8 @@ public class MessageHandler {
 		smsReceivers.put(key, sRec);
 		mCtx.registerReceiver(sRec, new IntentFilter("android.provider.Telephony.SMS_RECEIVED"));
 	}
-	
-	
+
+
 	/**
 	 * unregisteres listeners that are waiting for sms
 	 * 
@@ -337,8 +338,8 @@ public class MessageHandler {
 		SmsReceiver sRec = smsReceivers.remove(key);
 		mCtx.unregisterReceiver(sRec);
 	}
-	
-	
+
+
 	public void unsubscribeFromAllSMS(){
 		for (long key : smsReceivers.keySet()){
 			SmsReceiver sRec = smsReceivers.get(key);
@@ -346,8 +347,8 @@ public class MessageHandler {
 		}
 		smsReceivers.clear();
 	}
-	
-	
+
+
 	/**
 	 * This class monitors the sending process of an sms and returns resultcodes depending on it's success
 	 * 
@@ -355,48 +356,48 @@ public class MessageHandler {
 	 *
 	 */
 	private class SentReceiver extends BroadcastReceiver{
-		
+
 		String key;
-		
+
 		public SentReceiver(String key){
 			this.key = key;
 		}
-		
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            
-        	context.unregisterReceiver(this);
-        	
-        	String messageID = intent.getAction();
-        	messageID = messageID.substring(0, messageID.indexOf("#"));
-        	
-        	switch (getResultCode())
-            {
-                case Activity.RESULT_OK:
-                	mAppView.loadUrl("javascript:bondi.messaging.smsSuccess(" + this.key + ", '" + SMS_SENT.toString()  + "')");
 
-                    break;
-                case SmsManager.RESULT_ERROR_GENERIC_FAILURE:
-                	mAppView.loadUrl("javascript:bondi.messaging.smsFailure("+ this.key + ", '" +  SMS_ERROR_GENERIC_FAILURE  + "')");
+		@Override
+		public void onReceive(Context context, Intent intent) {
 
-                    break;
-                case SmsManager.RESULT_ERROR_NO_SERVICE:
-                	mAppView.loadUrl("javascript:bondi.messaging.smsFailure("+ this.key + ", '" +  SMS_ERROR_NO_SERVICE  + "')");
+			context.unregisterReceiver(this);
 
-                    break;
-                case SmsManager.RESULT_ERROR_NULL_PDU:
-                	mAppView.loadUrl("javascript:bondi.messaging.smsFailure("+ this.key + ", '" +  SMS_ERROR_NULL_PDU  + "')");
-                	
-                    break;
-                case SmsManager.RESULT_ERROR_RADIO_OFF:
-                	mAppView.loadUrl("javascript:bondi.messaging.smsFailure("+ this.key + ", '" +  SMS_ERROR_RADIO_OFF  + "')");
-                	
-                    break;
-            }
-        }
-    }
-	
-	
+			String messageID = intent.getAction();
+			messageID = messageID.substring(0, messageID.indexOf("#"));
+
+			switch (getResultCode())
+			{
+			case Activity.RESULT_OK:
+				mAppView.loadUrl("javascript:bondi.messaging.smsSuccess(" + this.key + ", '" + SMS_SENT.toString()  + "')");
+
+				break;
+			case SmsManager.RESULT_ERROR_GENERIC_FAILURE:
+				mAppView.loadUrl("javascript:bondi.messaging.smsFailure("+ this.key + ", '" +  SMS_ERROR_GENERIC_FAILURE  + "')");
+
+				break;
+			case SmsManager.RESULT_ERROR_NO_SERVICE:
+				mAppView.loadUrl("javascript:bondi.messaging.smsFailure("+ this.key + ", '" +  SMS_ERROR_NO_SERVICE  + "')");
+
+				break;
+			case SmsManager.RESULT_ERROR_NULL_PDU:
+				mAppView.loadUrl("javascript:bondi.messaging.smsFailure("+ this.key + ", '" +  SMS_ERROR_NULL_PDU  + "')");
+
+				break;
+			case SmsManager.RESULT_ERROR_RADIO_OFF:
+				mAppView.loadUrl("javascript:bondi.messaging.smsFailure("+ this.key + ", '" +  SMS_ERROR_RADIO_OFF  + "')");
+
+				break;
+			}
+		}
+	}
+
+
 	/**
 	 * This class monitors the delivery of an sms and returns resultcodes depending on it's success
 	 * 
@@ -404,35 +405,35 @@ public class MessageHandler {
 	 *
 	 */
 	private class DeliveryReceiver extends BroadcastReceiver{
-		
+
 		String key;
-		
+
 		public DeliveryReceiver(String key){
 			this.key = key;
 		}
-		
-        @Override
-        public void onReceive(Context context, Intent intent) {
-        	
-        	context.unregisterReceiver(this);
-        	
-        	String messageID = intent.getAction();
-        	messageID = messageID.substring(0, messageID.indexOf("#"));
-        	
-            switch (getResultCode())
-            {
-                case Activity.RESULT_OK:
-                	mAppView.loadUrl("javascript:bondi.messaging.smsSuccess(" + this.key + ", " + SMS_DELIVERED  + ")");
-                	
-                    break;
-                case Activity.RESULT_CANCELED:
-                	mAppView.loadUrl("javascript:bondi.messaging.smsFailure("+ this.key + ", " +  SMS_DELIVERY_CANCEL  + ")");
-                    break;                        
-            }
-        }
-    }
 
-	
+		@Override
+		public void onReceive(Context context, Intent intent) {
+
+			context.unregisterReceiver(this);
+
+			String messageID = intent.getAction();
+			messageID = messageID.substring(0, messageID.indexOf("#"));
+
+			switch (getResultCode())
+			{
+			case Activity.RESULT_OK:
+				mAppView.loadUrl("javascript:bondi.messaging.smsSuccess(" + this.key + ", " + SMS_DELIVERED  + ")");
+
+				break;
+			case Activity.RESULT_CANCELED:
+				mAppView.loadUrl("javascript:bondi.messaging.smsFailure("+ this.key + ", " +  SMS_DELIVERY_CANCEL  + ")");
+				break;                        
+			}
+		}
+	}
+
+
 	/**
 	 * 
 	 * This class listens for sms and transfers the received SMSs to a successcallback, if
@@ -444,31 +445,31 @@ public class MessageHandler {
 	 *
 	 */
 	private class SmsReceiver extends BroadcastReceiver {
-		
+
 		private long key = -1;
 		private String port = null;
 		private String sender = null;
 		private boolean portIsSet = false;
 		private boolean senderIsSet = false;
-		
+
 		public String toString(){
 			return ("SmsReceiver: key=" + key + " port=" + port + "sender=" + sender);
 		}
-		
+
 		public SmsReceiver(long key, String port, String sender){
 			this.key = key;
 			this.port = port;
 			this.sender = sender;
-			
+
 			if (this.port != null){
 				portIsSet = true;
 			}
-			
+
 			if (this.sender != null){
 				this.senderIsSet = true;
 			}
 		}
-		
+
 		@Override
 		public void onReceive(Context context, Intent intent) {
 
@@ -480,9 +481,6 @@ public class MessageHandler {
 				for (int i=0; i < messages.length; i++){
 					messages[i] = SmsMessage.createFromPdu((byte[])pdus[i]); 
 
-//					System.out.println("received sms " + messages[i].getDisplayMessageBody());
-//					System.out.println("received sms from " + messages[i].getOriginatingAddress() + " should have been " + this.sender);
-					
 					if (senderIsSet){
 						if (this.sender != messages[i].getOriginatingAddress()){							
 							return;
@@ -500,5 +498,5 @@ public class MessageHandler {
 			}          
 		}
 	}
-	
+
 }

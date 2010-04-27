@@ -29,6 +29,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -45,6 +47,8 @@ public class DeviceStatus {
 
 	private WebView mAppView;
 	private Context mCtx;
+	private Timer clock = new Timer();
+	private HashMap<Long, Timerbundle> timeTable = new HashMap<Long, Timerbundle>();
 
 	/** the logger */
 	private static final String LOG_TAG = "DeviceStatus";
@@ -241,7 +245,7 @@ public class DeviceStatus {
 			}
 			
 			if (Math.abs(level - oldLevel) >= minPercentage){
-				mAppView.loadUrl("javascript:bondi.devicestatusManager.propertyChanged(" + id + "," +  level + ")");
+				mAppView.loadUrl("javascript:bondi.devicestatus.propertyChanged(" + id + "," +  level + ")");
 				oldLevel = level;
 			}
 			
@@ -300,8 +304,7 @@ public class DeviceStatus {
 		public void onReceive(Context context, Intent intent){
 			String technology = intent.getStringExtra("technology");
 			
-			mAppView.loadUrl("javascript:bondi.devicestatusManager.propertyChanged(" + id + "," +  technology + ")");
-			
+			mAppView.loadUrl("javascript:bondi.devicestatus.propertyChanged(" + id + "," +  technology + ")");
 		}
 	};
 	
@@ -361,9 +364,9 @@ public class DeviceStatus {
 			int status = intent.getIntExtra("status", -1);
 
 				if (status == BatteryManager.BATTERY_STATUS_CHARGING){
-					mAppView.loadUrl("javascript:bondi.devicestatusManager.propertyChanged(" + id + "," +  "true" + ")");
+					mAppView.loadUrl("javascript:bondi.devicestatus.propertyChanged(" + id + "," +  "true" + ")");
 				} else {
-					mAppView.loadUrl("javascript:bondi.devicestatusManager.propertyChanged(" + id + "," +  "false" + ")");
+					mAppView.loadUrl("javascript:bondi.devicestatus.propertyChanged(" + id + "," +  "false" + ")");
 				}
 			
 		}
@@ -429,7 +432,7 @@ public class DeviceStatus {
 				// lazy initialization of _oldOrientation
 				if (_oldOrientation == -1){
 					_oldOrientation = orientation;
-					mAppView.loadUrl("javascript:bondi.devicestatusManager.propertyChanged(" + _id + "," +  orientation + ")");
+					mAppView.loadUrl("javascript:bondi.devicestatus.propertyChanged(" + _id + "," +  orientation + ")");
 				} else {
 					
 					// calculate the angle difference
@@ -447,7 +450,7 @@ public class DeviceStatus {
 					//if (changePercentage > _minChangePercentage){
 					if (difference > 45) { // FIXME: replace by _minChangePercentage 
 						_oldOrientation = orientation;
-						mAppView.loadUrl("javascript:bondi.devicestatusManager.propertyChanged(" + _id + "," +  orientation + ")");
+						mAppView.loadUrl("javascript:bondi.devicestatus.propertyChanged(" + _id + "," +  orientation + ")");
 					}
 				}
 			}
@@ -563,21 +566,100 @@ public class DeviceStatus {
 		return "unknown";
 	}
 	
-//	private class timeoutTask extends TimerTask{
-//
-//		long id = -1;
-//		String value = "";
-//		
-//		public timeoutTask(long key){
-//			id = key;
-//		}
-//		
-//		@Override
-//		public void run() {
-//			mAppView.loadUrl("javascript:bondi.devicestatusManager.propertyChanged(" + id + "," + value + ")");			
-//		}
-//		
-//	}
+	
+	public void startTimer (long id, String minTimeout, String maxTimeout){
+		System.out.println("StartTimer " + id + " min " + minTimeout + " max " + maxTimeout);
+		Timerbundle bundle = new Timerbundle(id, Long.parseLong(minTimeout), Long.parseLong(maxTimeout));
+		this.timeTable.put(id, bundle);
+	}
+	
+	public void restartTimer(long id){
+		System.out.println("restartTimer " + id);
+		Timerbundle bundle = this.timeTable.get(id);
+		if (bundle != null){
+			bundle.restart();
+		}
+	}
+	
+	public void cancelTimer(long id){
+		System.out.println("cancel timer" + id);
+		Timerbundle bundle = this.timeTable.remove(id);
+		if (bundle != null){
+			bundle.cancel();
+		}
+	}
+	
+	
+	
+	private class Timerbundle{
+		TimeoutTask minTimer = null;
+		TimeoutTask maxTimer = null;
+		
+		public Timerbundle(long id, long minTimeout, long maxTimeout){
+			System.out.println("timerbundle " + id + " min " + minTimeout + " max " + maxTimeout);
+			if (minTimeout > -1){
+				minTimer = new TimeoutTask(id, "minTimeout", minTimeout, this);
+				clock.scheduleAtFixedRate(minTimer, minTimeout, minTimeout);
+			}
+			if (maxTimeout > -1){
+				maxTimer = new TimeoutTask(id, "maxTimeout", maxTimeout, this);
+				clock.scheduleAtFixedRate(maxTimer, maxTimeout, maxTimeout);
+			}
+		}
+		
+		public void restart(){
+			if (minTimer != null){
+				minTimer.restart();
+			}
+			if (maxTimer != null){
+				maxTimer.restart();
+			}
+			clock.purge();
+		}
+		
+		public void cancel(){
+			if (minTimer != null){
+				minTimer.cancel();
+			}
+			if (maxTimer != null){
+				maxTimer.cancel();
+			}
+			clock.purge();
+		}
+		
+	}
+	
+	private class TimeoutTask extends TimerTask{
+
+		long id = -1;
+		String title = "";
+		long time;
+		Timerbundle holder;
+		
+		public TimeoutTask(long key, String title, long time, Timerbundle holder){
+			id = key;
+			this.title = title;
+			this.time = time;
+			this.holder = holder;
+		}
+		
+		public void restart(){
+			this.cancel();
+			TimeoutTask nT = new TimeoutTask(id, title, time, holder);
+			if (title.equalsIgnoreCase("minTimeout")){
+				holder.minTimer = nT;
+			} else {
+				holder.maxTimer = nT;
+			}
+			clock.scheduleAtFixedRate(nT, time, time);
+		}
+		
+		@Override
+		public void run() {
+			mAppView.loadUrl("javascript:bondi.devicestatus.propertyChanged(" + id + ",null,'" + title + "')");			
+		}
+		
+	}
 	
 	
 }
