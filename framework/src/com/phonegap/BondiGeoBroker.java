@@ -1,6 +1,7 @@
 package com.phonegap;
 
 import java.util.HashMap;
+import java.util.List;
 
 import android.content.Context;
 import android.location.Location;
@@ -27,10 +28,24 @@ public class BondiGeoBroker {
 	}
 	
 	public void getCurrentLocation(final String id)
-	{				
+	{		
 		try {
-			GeoListener listener = new BondiGeoListener(id, mCtx, 10000, mAppView);
-			Location loc = listener.getCurrentLocation();
+			List<String> providers = mLocMan.getAllProviders();
+
+			boolean noProvider = true;
+			Location loc = null;
+			for (String provName : providers){
+				if (loc == null && (mLocMan.getProvider(provName) != null)){
+					loc = mLocMan.getLastKnownLocation(provName);
+					noProvider = false;
+				} 
+			}
+
+			if (noProvider){
+				mAppView.loadUrl("javascript:bondi.geolocation.fail(" + id + ",'Currently is no Location-Provider avaiable - check devicesettings')");
+			}
+
+
 			String params; 
 			if (loc != null){
 				/*
@@ -48,14 +63,13 @@ public class BondiGeoBroker {
 
 				mAppView.loadUrl("javascript:bondi.geolocation.success(" + id + "," +  params + ")");
 			} else {
-				mAppView.loadUrl("javascript:bondi.geolocation.fail(" + id + ")");
+				mAppView.loadUrl("javascript:bondi.geolocation.fail(" + id + ",'noLoc')");
 			}
-			listener.stop();
 
 		} catch (Exception e) {
 			e.printStackTrace();
 			// call fail if an error was detected.
-			mAppView.loadUrl("javascript:bondi.geolocation.fail(" + id + ")");
+			mAppView.loadUrl("javascript:bondi.geolocation.fail(" + id + "," + e.getMessage() + ")");
 		}
 	}
 	

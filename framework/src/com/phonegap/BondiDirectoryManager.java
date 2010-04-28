@@ -171,14 +171,15 @@ public class BondiDirectoryManager {
 		}
 		
 		// check the target
-		File targetDirectory = new File(targetFileName);
+		File targetFile = new File(targetFileName);
+		File targetDirectory = targetFile.getParentFile();
+		
 		if (!targetDirectory.exists()) {
-			return "targetFile does not exist";
+			return "targetDirectory does not exist";
 		}
 		if (!targetDirectory.isDirectory()) {
-			return "targetFile must be a directory";
+			return "targetDirectory must be a directory";
 		}
-		File targetFile = new File(targetDirectory, origFile.getName());
 		if (targetFile.exists() && !overwrite) {
 			return "targetFile already exists";
 		}
@@ -195,7 +196,7 @@ public class BondiDirectoryManager {
 	protected boolean moveTo(String origFileName, String targetFileName) {
 		try {
 			File origFile = new File(origFileName);
-			File targetDirectory = new File(targetFileName);
+			File targetDirectory = new File(targetFileName).getParentFile();
 			File targetFile = new File(targetDirectory, origFile.getName());
 			return origFile.renameTo(targetFile);
 		} catch (Exception e) {

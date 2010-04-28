@@ -154,8 +154,16 @@ public class FileSystem {
 				.getExternalStorageDirectory().getAbsolutePath() + "/DCIM/Camera/");
 		this.locationsMounted.put("temp", Environment
 				.getDownloadCacheDirectory().getAbsolutePath());
-		this.locationsUnmounted.put("wgt:private", Environment
-				.getExternalStorageDirectory().getAbsolutePath());
+//		this.locationsUnmounted.put("wgt-private", Environment
+//				.getExternalStorageDirectory().getAbsolutePath());
+//		this.locationsUnmounted.put("wgt-public", Environment
+//				.getExternalStorageDirectory().getAbsolutePath());
+//		this.locationsUnmounted.put("wgt-tmp", Environment
+//				.getDownloadCacheDirectory().getAbsolutePath());
+//		this.locationsUnmounted.put("wgt-package", Environment
+//				.getExternalStorageDirectory().getAbsolutePath());
+//		this.locationsUnmounted.put("video", Environment
+//				.getExternalStorageDirectory().getAbsolutePath());
 	}
 
 	/**
@@ -331,7 +339,7 @@ public class FileSystem {
 		
 		// check for invalid chars
 		if (target == null || !target.matches("[A-z,0-9_\\-\\/\\ ]+")) {
-			mAppView.loadUrl("javascript:bondi.filesystem.fail(new DeviceAPIError(10004));");
+			mAppView.loadUrl("javascript:bondi.filesystem.fail(new DeviceAPIError(10004,'invalid filename'));");
 			return;
 		}
 		
@@ -342,14 +350,14 @@ public class FileSystem {
 			status = e.getMessage();
 		}
 		
-		// callback to javascript
+		// callBack to javaScript
 		if (status == null) {
 			// System.out.println("Load success");
 			mAppView.loadUrl("javascript:bondi.filesystem.success(bondi.filesystem.resolveSynchron('" + target + "'));");
 		} else {
 			// System.out.println("Load fail"); // maybe forward the status
 			// message should be forwarded;
-			mAppView.loadUrl("javascript:bondi.filesystem.fail(new DeviceAPIError(10004));");
+			mAppView.loadUrl("javascript:bondi.filesystem.fail(new DeviceAPIError(10004,'" + status + "'));");
 		}
 	}
 
@@ -369,20 +377,26 @@ public class FileSystem {
 			return status;
 		}
 		
+		if (target == null || !target.matches("[A-z,0-9_\\-\\/\\ ]+")) {
+			mAppView.loadUrl("javascript:bondi.filesystem.fail(new DeviceAPIError(10004,'invalid filename'));");
+			return null;
+		}
+		
 		Thread t = new Thread() {
 			public void run() {
+				Log.w("FileSystemThread", "moveTo Thread running! " + orig + " target:" + target);
 				boolean success;
 				String error = "";
 				try {
 					success = fileManager.moveTo(orig, target);
 				} catch (SecurityException e) {
-					Log.w("moveTo failed", e);
+					Log.w("FileSystemThread moveTo failed", e);
 					success = false;
 				}
 				if (success) {
-					mAppView.loadUrl("javascript:Bondi.filesystem.success();");
+					mAppView.loadUrl("javascript:bondi.filesystem.success(bondi.filesystem.resolveSynchron('" + target + "'));");
 				} else {
-					mAppView.loadUrl("javascript:Bondi.filesystem.fail('" + error + "');");
+					mAppView.loadUrl("javascript:bondi.filesystem.fail(new DeviceAPIError(10004,'could not move file'));");
 				}
 			}
 		};
@@ -764,12 +778,14 @@ public class FileSystem {
 				while (!toDelete.isEmpty()) {
 					File f = toDelete.peek();
 					File[] contents = f.listFiles();
-					for (File target : contents) {
-						if (target.isDirectory()) {
-							toDelete.add(0, target);
-						} else {
-							if (!target.delete()) {
-								return IO_ERROR;
+					if (contents != null) {
+						for (File target : contents) {
+							if (target.isDirectory()) {
+								toDelete.add(0, target);
+							} else {
+								if (!target.delete()) {
+									return IO_ERROR;
+								}
 							}
 						}
 					}
@@ -823,10 +839,21 @@ public class FileSystem {
 	 * @return a JSON object representing the created directory
 	 */
 	public String createDirectory(String path, String name) {
-		// Throw IO Error if the path is not relative or tries to traverse
-		// directories.
-		if (name.contains("..") || name.startsWith("/"))
+		// Throw IO Error if the path tries to traverse directories.
+		if (name.contains("..")) {
 			return IO_ERROR;
+		}
+		
+		// check for invalid chars
+		if (name == null || !name.matches("[A-z,0-9_\\-\\/\\ ]+")) {
+			return IO_ERROR;
+		}
+		
+		// all path must be relative
+		if (name.startsWith("/")) {
+			name = name.substring(1);
+		}
+
 		String target = (path.endsWith("/") ? path : path + "/") + name;
 		if (fileManager.createDirectory(target))
 			return resolve(target);
