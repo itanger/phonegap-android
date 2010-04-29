@@ -2445,6 +2445,7 @@ FileSystemManager.prototype.resolve = function(successCallback, errorCallback, l
 			}
 			successCallback(mydoc);
 		} catch (e)	{
+			e.code = e.INVALID_ARGUMENT_ERROR;
 			errorCallback(e);
 		}
 	}, 1);
