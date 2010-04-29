@@ -249,13 +249,13 @@ public class FileSystem {
 		File temp = new File(location);
 		boolean canRead = false;
 		try {
-			canRead = temp.canRead();
-			canRead = true;
+			canRead = temp.canRead() || temp.isDirectory();
+			//canRead = true;
 		} catch (SecurityException se) {
 			canRead = false;
 		}
 		if (!canRead) {
-			return PERMISSION_DENIED_ERROR;
+			return IO_ERROR;
 		} else {
 			result.put("readonly", Boolean.valueOf(!temp.canWrite()));
 			result.put("name", temp.getName() + "");
@@ -269,7 +269,6 @@ public class FileSystem {
 			result.put("parent", temp.getParent());
 		}
 		String rslt = new JSONObject(result).toString();
-		// Log.w("FileSystem", rslt == null ? "null!" : rslt);
 		return rslt;
 
 	}
@@ -285,8 +284,8 @@ public class FileSystem {
 		File temp = new File(basePath, location);
 		boolean canReadInfo = true;
 		try {
-			canReadInfo = temp.canRead();
-			canReadInfo = true;
+			canReadInfo = temp.exists();
+			//canReadInfo = true;
 		} catch (SecurityException se) {
 			canReadInfo = false;
 			Log.w("FileSystem", se.getMessage());
@@ -419,6 +418,13 @@ public class FileSystem {
 			//System.out.println("fileName must not be empty");
 			return "";
 		}
+		
+		// check whether the file already exists and is a directory
+		File dirCheckFile = new File(fileName);
+		if (dirCheckFile.exists() && dirCheckFile.isDirectory()) {
+			return IO_ERROR;
+		}
+		
 		FileStreamData fsd = new FileStreamData();
 		char[] modes = mode.toCharArray();
 		for (char m : modes) {
@@ -442,9 +448,12 @@ public class FileSystem {
 			return INVALID_ARGUMENT;
 		}
 
-		if (encoding == null
-				|| !("UTF-8".equals(encoding) || "ISO8859-1".equals(encoding)))
+		if (encoding == null) {
 			return INVALID_ARGUMENT;
+		}
+		if (!"UTF-8".equals(encoding) && !"ISO8859-1".equals(encoding)) {
+			return INVALID_ARGUMENT;
+		}			
 
 		RandomAccessFile raf = null;
 		try {
@@ -823,7 +832,8 @@ public class FileSystem {
 			return "false";
 		try {
 			if (!f.delete()) {
-				return IO_ERROR;
+				return getIO_Error("File " + file + " could not be deleted");
+//				return IO_ERROR;
 			}
 		} catch (SecurityException se) {
 			return PERMISSION_DENIED_ERROR;
@@ -841,12 +851,14 @@ public class FileSystem {
 	public String createDirectory(String path, String name) {
 		// Throw IO Error if the path tries to traverse directories.
 		if (name.contains("..")) {
-			return IO_ERROR;
+			return getIO_Error("Directoryname must not include ..");
+//			return IO_ERROR;
 		}
 		
 		// check for invalid chars
 		if (name == null || !name.matches("[A-z,0-9_\\-\\/\\ ]+")) {
-			return IO_ERROR;
+			return getIO_Error("Directoryname is only allowed to consist of these signs [A-z,0-9_\\-\\/\\ ]+");
+//			return IO_ERROR;
 		}
 		
 		// all path must be relative
@@ -858,7 +870,8 @@ public class FileSystem {
 		if (fileManager.createDirectory(target))
 			return resolve(target);
 		else
-			return IO_ERROR;
+			return getIO_Error("System was not able to create directory " + name + " at location " + path);
+//			return IO_ERROR;
 	}
 
 	/**
@@ -874,22 +887,45 @@ public class FileSystem {
 	public String createFile(String path, String name) {
 		// Throw IO Error if the path is not relative or tries to traverse
 		// directories.
+		
+		
+		
 		if (name.contains("..") || name.startsWith("/"))
-			return IO_ERROR;
+			return getIO_Error("Filename must not begin with .. or /");
+//			return IO_ERROR;
 		if (!new File(path).isDirectory())
-			return IO_ERROR;
+			return getIO_Error("path to filelocation must be a directory");
+//			return IO_ERROR;
 		File target = new File(path, name);
+		System.out.println("target Exists: " + target.exists());
 		try {
 			if (target.createNewFile())
 				return resolve(target.getAbsolutePath());
 			else
-				return IO_ERROR;
+				return getIO_Error("System was unable to create file with name " + name + " on path " + path);
+//				return IO_ERROR;
 		} catch (IOException io) {
-			return IO_ERROR;
+			return getIO_Error(io.getMessage());
+//			return IO_ERROR;
 		} catch (SecurityException se) {
-			return PERMISSION_DENIED_ERROR;
+			return getSecurityError(se.getMessage());
+//			return PERMISSION_DENIED_ERROR;
 		}
 
+	}
+	
+	private String getIO_Error(String message){
+		Map<String, Object> result = new HashMap<String, Object>();
+		result.put("error", Short.valueOf((short) 10004));
+		result.put("errorMessage", message);
+		return new JSONObject(result).toString();
+	}
+	
+	private String getSecurityError(String message){
+		Map<String, Object> result = new HashMap<String, Object>();
+		result.put("error", Short.valueOf((short) 20000));
+		result.put("errorMessage", message);
+		return new JSONObject(result).toString();
 	}
 
 	public void log(String string) {

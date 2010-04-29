@@ -25,6 +25,7 @@ public class BondiGeoBroker {
 	{
 		mCtx = ctx;
 		mAppView = view;
+		mLocMan = (LocationManager) mCtx.getSystemService(Context.LOCATION_SERVICE);
 	}
 	
 	public void getCurrentLocation(final String id)
@@ -79,7 +80,6 @@ public class BondiGeoBroker {
 	 */
 	public Location getLastKnownLocation()
 	{
-		mLocMan = (LocationManager) mCtx.getSystemService(Context.LOCATION_SERVICE);
 		cLoc = mLocMan.getLastKnownLocation(LocationManager.GPS_PROVIDER);
 		if (cLoc == null){
 			cLoc = mLocMan.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);

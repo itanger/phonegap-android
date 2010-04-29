@@ -1,3 +1,4 @@
+
 /*
  * 
  * 
@@ -9,12 +10,18 @@
 //if (typeof(bondi) != 'object')
 //	bondi = {};
 
-GenericError = function(code) {
+function GenericError(code, message) {
 	this.code = code;
+	this.message = message;
 }
 
 function DeviceAPIError() {
 }
+function DeviceAPIError(code, message) {
+	this.code = code;
+	this.message = message;
+}
+
 DeviceAPIError.prototype.UNKNOWN_ERROR = 10000;
 DeviceAPIError.prototype.INVALID_ARGUMENT_ERROR = 10001;
 DeviceAPIError.prototype.NOT_FOUND_ERROR = 10002;
@@ -183,14 +190,14 @@ BondiCamera.prototype.description = 'androidcam';
  *             DeviceAPIError, CameraError
  */
 BondiCamera.prototype.takePicture = function(successCallback, errorCallback, options) {
-		
+		var error;
 		if (typeof successCallback != "function"){
-			var error = new DeviceAPIError();
+			error = new DeviceAPIError();
 			error.code = error.INVALID_ARGUMENT_ERROR;
 			error.message = "successCallback has to be defined and a function";
 			throw error;
 		} else if (typeof errorCallback != "function"){
-			var error = new DeviceAPIError();
+			error = new DeviceAPIError();
 			error.code = error.INVALID_ARGUMENT_ERROR;
 			error.message = "errorCallback has to be defined and a function";
 			throw error;
@@ -211,12 +218,12 @@ BondiCamera.prototype.takePicture = function(successCallback, errorCallback, opt
 		var camStatus = GapCam.takePictureFile(options.quality, options.width, options.height, this.id);
 
 		if (camStatus == "occupied"){
-			var error = new CameraError();
+			error = new CameraError();
 			error.code = error.CAMERA_ALREADY_IN_USE_ERROR;
 			error.message = "camera is already in use please try again later";
 			throw error;
 		} else if (camStatus == "Permission Denied"){
-			var error = new SecurityError ()
+			error = new SecurityError ()
 			error.code = error.PERMISSION_DENIED_ERROR;
 			error.message = "Permission to take picture was denied";
 			throw error;
@@ -309,6 +316,8 @@ BondiCamera.prototype.requestLiveVideo = function(successCallback, errorCallback
  *            The successCallBack
  * @param errorCallback
  *            The errorCallback
+ * @param options
+ *            non-mandatory options
  * @return PendingOperation
  */
 BondiCamera.prototype.startVideo = function(successCallback, errorCallback, options) {
@@ -349,10 +358,11 @@ function BondiGeolocation() {
 	 */
 	this.lastPosition = null;
 	this.lastError = null;
-	this.callbacks = {
-			onLocationChanged: [],
-			onError:           []
-	};
+	this.listeners = [];
+//	this.callbacks = {
+//			onLocationChanged: [],
+//			onError:           []
+//	};
 };
 
 
@@ -376,22 +386,46 @@ function BondiGeolocation() {
 BondiGeolocation.prototype.getCurrentPosition = function(successCallback, errorCallback, options)
 {
 	var error;
-	if ((typeof successCallback == "undefined") || (successCallback == null)){
+	var errorCbIsDefined = false;
+	
+
+	if ((typeof errorCallback != 'undefined')  && (errorCallback != null)){
+		if (typeof errorCallback != 'function'){
+			// check of strange interpretation of "optional parameter" from frauenhofer-focus
+			if (typeof errorCallback == 'object' && (typeof options == 'undefined')){
+				// errorCallback was just "left out" and is possible meant as options instead...
+				options = errorCallback;
+				errorCallback = null;
+			} else {
+				error = new DeviceAPIError();
+				error.code = error.INVALID_ARGUMENT_ERROR;
+				error.message = "errorCallback must be a function if defined";
+				throw(error);
+			}
+		} else {
+			errorCbIsDefined = true;
+		} 
+	}
+	if ((typeof successCallback == "undefined") || (successCallback == null) || (typeof successCallback != "function")){
 		// Even if we would be successful in retrieving a position there would
 		// be no place to send it to
 		error = new DeviceAPIError();
 		error.code = error.INVALID_ARGUMENT_ERROR;
-		error.message = "SuccessCallback must be defined and not be null";
-		errorCallback(error);
+		error.message = "SuccessCallback must be defined, a function and not be null";
+		if (errorCbIsDefined) {
+			errorCallback(error);
+		}
 		return;
 	} 
 	// time in milliseconds that the gps-system might potentially rest between
 	// updates to conserve power
 	var maximumAge = 0;
 	var timeout = 1000;
+	var isTimeoutSet = false;
 
 	// Check Maximum Age option exists
 	if (typeof options != "undefined" && options != null){
+		var isValid = false;
 		if (typeof options.maximumAge != "undefined" && options.maximumAge != null){
 			if (options.maximumAge < 0){
 				// maximumAge must be higher than -1.
@@ -400,22 +434,69 @@ BondiGeolocation.prototype.getCurrentPosition = function(successCallback, errorC
 				error = new DeviceAPIError();
 				error.code = error.INVALID_ARGUMENT_ERROR;
 				error.message = "maximumAge must be higher than -1";
-				errorCallback(error);
+				if (errorCbIsDefined) {
+					errorCallback(error);
+				}
 				return;
 			} else if (options.maximumAge != 0){
+				isValid = true;
 				// old readings might be used, so let's check if our last
 				// reading is new enough'
 				var location = this.checkAgeOfLastKnownLocation(options.maximumAge);
 				if (location != null){
-					successCallback(location);
-					return;
+					if (typeof location.code == 'undefined'){
+						// location is indeed location
+						successCallback(location);
+						return;
+					} else {
+						// location is an positionError instead
+						if (errorCbIsDefined) {
+							errorCallback(location);
+						}
+					}
 				} else {
 					maximumAge = options.maximumAge;
 				}
 			}
-		}
-	} // END maximumAge
+		}// END maximumAge
+		
+		// Now look if there is a timeout included
+		if (typeof options.timeout != "undefined" && options.timeout != null){
 
+			if (options.timeout < -1){
+				// A timeout can't be a point in time before this point, so the
+				// argument is invalid'
+				error = new DeviceAPIError();
+				error.code = error.INVALID_ARGUMENT_ERROR;
+				error.message = "Timeout can't be a point in time before the present, so it has to be > -1";
+				if (errorCbIsDefined) {
+					errorCallback(error);
+				}
+				return;
+			} else {
+				isValid = true;
+			}
+			timeout = options.timeout;
+			isTimeoutSet = true;
+		}
+		if ((typeof options.enableHighAccuracy != "undefined") && (options.enableHighAccuracy != null)){
+			if (options.enableHighAccuracy == true || options.enableHighAccuracy == false){
+				isValid = true;
+			}
+		}
+		if (!isValid){
+			error = new DeviceAPIError();
+			error.code = error.INVALID_ARGUMENT_ERROR;
+			error.message = "if options are defined they have to include at least one valid option";
+			if (errorCbIsDefined) {
+				errorCallback(error);
+			} 
+			return;
+		} 
+	}
+
+	
+	
 	// PositionData was null or to old -> New PositionData has to be acquired
 	if (typeof this.listeners == "undefined"){
 		this.listeners = [];
@@ -430,35 +511,23 @@ BondiGeolocation.prototype.getCurrentPosition = function(successCallback, errorC
 		"timeout" : null
 	}) - 1;
 
-	// Now look if there is a timeout included
-	if (typeof options != "undefined" && options != null){
-		if (typeof options.timeout != "undefined" && options.timeout != null){
+	if (isTimeoutSet){
+		var that = this;
 
-			if (options.timeout < -1){
-				// A timeout can't be a point in time before this point, so the
-				// argument is invalid'
-				error = new DeviceAPIError();
-				error.code = error.INVALID_ARGUMENT_ERROR;
-				error.message = "Timeout can't be a point in time before the present, so it has to be > -1";
-				errorCallback(error);
-				return;
-			}
-			timeout = options.timeout;
-			var that = this;
+		var timer = setTimeout(function() {
+			if (typeof that.listeners[key].oneShot != "undefined"){
+				if (that.listeners[key].oneShot == "false"){
+					// Reply was already done successfully
+					clearTimeout(that.listeners[key].timer);
+					that.listeners[key].timer = null;
+					return;
+				}
 
-			var timer = setTimeout(function() {
-				if (typeof that.listeners[key].oneShot != "undefined"){
-					if (that.listeners[key].oneShot == "false"){
-						// Reply was already done successfully
-						clearTimeout(that.listeners[key].timer);
-						that.listeners[key].timer = null;
-						return;
-					}
+				// might be another listener was successful meanwhile
+				var location = that.checkAgeOfLastKnownLocation(maximumAge);
 
-					// might be another listener was successful meanwhile
-					var location = that.checkAgeOfLastKnownLocation(maximumAge);
-
-					if (location != null){
+				if (location != null){
+					if (typeof location.code == 'undefined'){
 						// timeout reached but another listener updated
 						// location data successfully for us
 						successCallback(location);
@@ -468,23 +537,35 @@ BondiGeolocation.prototype.getCurrentPosition = function(successCallback, errorC
 						that.listeners[key].timer = null;
 						return;
 					} else {
-						// timeout reached without adequate young locationdata
-						error = new PositionError();
-						error.code = PositionError.TIMEOUT;
-						error.message = "Timeout without a location that was sufficient up to date"
-							errorCallback(error);
-						that.listeners[key].oneShot = "false";
+						//timeout reached but location is still not available yet
+						this.listeners[key].oneShot = "false";
 						bGeo.stop(key);
 						clearTimeout(that.listeners[key].timer);
 						that.listeners[key].timer = null;
+						if (errorCbIsDefined) {
+							errorCallback(location);
+						} 
 						return;
 					}
-				} 
-			}, options.timeout);
-			this.listeners[key].timer = timer;
-		}
+				} else {
+					// timeout reached without adequate young locationData
+					error = new PositionError();
+					error.code = PositionError.TIMEOUT;
+					error.message = "Timeout without a location that was sufficient up to date";
+					if (errorCbIsDefined) {
+						errorCallback(location);
+					} 
+					that.listeners[key].oneShot = "false";
+					bGeo.stop(key);
+					clearTimeout(that.listeners[key].timer);
+					that.listeners[key].timer = null;
+					return;
+				}
+			} 
+		}, options.timeout);
+		this.listeners[key].timer = timer;
 	}
-
+	
 	bGeo.getCurrentLocation(key);
 }
 
@@ -500,10 +581,14 @@ BondiGeolocation.prototype.getCurrentPosition = function(successCallback, errorC
 BondiGeolocation.prototype.checkAgeOfLastKnownLocation = function (maximumAge){
 	var loc = this.getLastKnownPosition();
 	if (loc != null){
-		var now = new Date();
-		var age = now.getTime() - loc.timestamp;
-//		alert("Checking Age of last known position \n    age is: " + age + " \n maxAge is " + maximumAge);
-		if (age < maximumAge){
+		if (typeof loc.timestamp != 'undefined'){
+			var now = new Date();
+			var age = now.getTime() - loc.timestamp;
+//			alert("Checking Age of last known position \n    age is: " + age + " \n maxAge is " + maximumAge);
+			if (age < maximumAge){
+				return loc;
+			}
+		} else {
 			return loc;
 		}
 	}
@@ -518,20 +603,27 @@ BondiGeolocation.prototype.checkAgeOfLastKnownLocation = function (maximumAge){
  * @return lastPosition
  */
 BondiGeolocation.prototype.getLastKnownPosition = function(){
-	if ((typeof this.lastPosition == "undefined")
+	if ((typeof this.lastPosition == 'undefined')
 			|| (this.lastPosition == null)){
 		var loc = bGeo.getLastKnownLocation();
 		var coords;
-		if (loc == null){
-			coords = new Coordinates("notReceivedYet", "notReceivedYet", "notReceivedYet", "notReceivedYet", "notReceivedYet", "notReceivedYet", "notReceivedYet");
-			this.lastPosition = new Position(coords, "notReceivedYet");
+		if (loc == null){			// Position not yet avaiable
+			var error = new PositionError();
+			error.code = error.POSITION_UNAVAILABLE;
+			error.message = "No position received yet";
+			return error;	
+
+//			coords = new Coordinates("notReceivedYet", "notReceivedYet", "notReceivedYet", "notReceivedYet", "notReceivedYet", "notReceivedYet", "notReceivedYet");
+//			this.lastPosition = new Position(coords, "notReceivedYet");
+//			coords = new Coordinates(parseFloat("0"), parseFloat("0"), parseFloat("0"), parseFloat("0"), parseFloat("0"), parseFloat("0"), parseFloat("0"));
+//			this.lastPosition = new Position(coords, parseFloat("0"));
 		} else {
 			/*
 			 * altitudeAccuracy: as this value isn't supported seperatedly by the Android.location.Location class
 			 * so the general accuracy is used for it
 			 */
-			coords = new Coordinates(loc.getLatitude(), loc.getLongitude(), loc.getAltitude(), loc.getAccuracy(), loc.getBearing(), loc.getSpeed(), loc.getAccuracy());
-			this.lastPosition = new Position(coords, loc.timestamp);
+			coords = new Coordinates(parseFloat(loc.getLatitude()), parseFloat(loc.getLongitude()), parseFloat(loc.getAltitude()), parseFloat(loc.getAccuracy()), parseFloat(loc.getBearing()), parseFloat(loc.getSpeed()), parseFloat(loc.getAccuracy()));
+			this.lastPosition = new Position(coords, parseInt(loc.timestamp));
 		}
 	}
 	return this.lastPosition;
@@ -557,39 +649,87 @@ BondiGeolocation.prototype.watchPosition = function(successCallback, errorCallba
 	var maximumAge = 0;
 	var error;
 
-	// BEGIN argument checking and error handling
-	if ((typeof successCallback == "undefined") || (successCallback == null)){
+	// BEGIN argument checking and error handling		
+	var errorCbIsDefined = false;
+	
+	if ((typeof errorCallback != 'undefined')  && (errorCallback != null)){
+		if (typeof errorCallback != 'function'){
+			// check of strange interpretation of "optional parameter" from frauenhofer-focus
+			if (typeof errorCallback == 'object' && (typeof options == 'undefined')){
+				// errorCallback was just "left out" and is possible meant as options instead...
+				options = errorCallback;
+				errorCallback = null;
+			} else {
+				error = new DeviceAPIError();
+				error.code = error.INVALID_ARGUMENT_ERROR;
+				error.message = "errorCallback must be a function if defined";
+				throw(error);
+			}
+		} else {
+			errorCbIsDefined = true;
+		} 
+	}
+	if ((typeof successCallback == "undefined") || (successCallback == null) || (typeof successCallback != "function")){
+		// Even if we would be successful in retrieving a position there would
+		// be no place to send it to
 		error = new DeviceAPIError();
 		error.code = error.INVALID_ARGUMENT_ERROR;
-		error.message = "SuccessCallback must be defined and not null";
-		errorCallback(error);
+		error.message = "SuccessCallback must be defined, a function and not be null";
+		if (errorCbIsDefined) {
+			errorCallback(error);
+		}
 		return;
-	} else if ((typeof options != "undefined") && (options != null)){
+	} 
+	
+	if ((typeof options != "undefined") && (options != null)){
+		var isValid = false;
 		if ((typeof options.timeout != "undefined") && (options.timeout != null)){
 			if (options.timeout > -2){
 				timeout = options.timeout;
+				isValid = true;
 			} else {
 				// timeout must not be < -1
 				error = new DeviceAPIError();
 				error.code = error.INVALID_ARGUMENT_ERROR;
 				error.message = "timeout must not be < -1";
-				errorCallback(error);
+				if (errorCbIsDefined) {
+					errorCallback(error);
+				}
 				return;
 			}
-
-			if ((typeof options.maximumAge != "undefined") && (options.maximumAge != null)){
-				if (options.maximumAge > -1){
-					maximumAge = options.maximumAge;
-				} else {
-					error = new DeviceAPIError();
-					error.code = error.INVALID_ARGUMENT_ERROR;
-					error.message = "maximumAge has to be > -1";
+		}
+		if ((typeof options.maximumAge != "undefined") && (options.maximumAge != null)){
+			if (options.maximumAge > -1){
+				maximumAge = options.maximumAge;
+				isValid = true;
+			} else {
+				error = new DeviceAPIError();
+				error.code = error.INVALID_ARGUMENT_ERROR;
+				error.message = "maximumAge has to be > -1";
+				if (errorCbIsDefined) {
 					errorCallback(error);
-					return;
 				}
+				return;
 			}
 		}
+		if ((typeof options.enableHighAccuracy != "undefined") && (options.enableHighAccuracy != null)){
+			if (options.enableHighAccuracy == true || options.enableHighAccuracy == false){
+				isValid = true;
+			}
+		}
+		
+		if (!isValid){
+			error = new DeviceAPIError();
+			error.code = error.INVALID_ARGUMENT_ERROR;
+			error.message = "if options are defined they have to include at least one valid option";
+			if (errorCbIsDefined) {
+				errorCallback(error);
+			} 
+			return;
+		} 
 	} // END ArgumentChecking and errorHandling
+	
+	
 
 	if (typeof this.listeners == "undefined"){
 		this.listeners = [];
@@ -614,12 +754,21 @@ BondiGeolocation.prototype.watchPosition = function(successCallback, errorCallba
 		var that = this;
 		var timer = setInterval(function (){
 			// window.confirm("timerinterval is called");
-			if (that.checkAgeOfLastKnownLocation(timeout) == null){
+			var loc = that.checkAgeOfLastKnownLocation(timeout);
+			if (loc == null){
 				// no update during timeoutinterval so let's throw an error'
 				var error = new PositionError();
 				error.code = PositionError.TIMEOUT;
 				error.message = "Timeout reached without appropriate young location-data";
-				that.listeners[key].fail(error);
+				if (that.listeners[key].fail != null){
+					that.listeners[key].fail(error);
+				}
+			} else if (typeof loc.code != 'undefined') {
+				// no update during timeoutinterval
+				// loc just seems to be a location and is instead an PositionError.POSITION_UNAVAIABLE
+				if (that.listeners[key].fail != null){
+					that.listeners[key].fail(loc);
+				}
 			}
 		}, timeout);
 
@@ -635,6 +784,9 @@ BondiGeolocation.prototype.watchPosition = function(successCallback, errorCallba
 	}
 }
 
+BondiGeolocation.prototype.alertMessage = function (message){
+	alert("geoLocLog: " + message);
+}
 
 /*
  * This Method is called whenever a new position comes in through
@@ -642,8 +794,8 @@ BondiGeolocation.prototype.watchPosition = function(successCallback, errorCallba
  */
 BondiGeolocation.prototype.success = function(key, lat, lng, alt, acc, altacc, head, vel, stamp)
 {
-	var coords = new Coordinates(lat, lng, alt, acc, head, vel, altacc);
-	var loc = new Position(coords, stamp);
+	var coords = new Coordinates(parseFloat(lat), parseFloat(lng), parseFloat(alt), parseFloat(acc), parseFloat(head), parseFloat(vel), parseFloat(altacc));
+	var loc = new Position(coords, parseInt(stamp));
 	this.lastPosition = loc;
 
 	if (typeof this.listeners[key] != "undefined"){
@@ -662,18 +814,26 @@ BondiGeolocation.prototype.success = function(key, lat, lng, alt, acc, altacc, h
 				// problem with that but somewhere is has to be checked doesn't it?'
 				if (typeof this.listeners[key].maximumAge != null){
 					if (this.listeners[key].maximumAge > 0){
-						// if maximumAge == 0 it would mean that new data is wanted.
-						// Assumption: all data that is incoming here is up to date as far as it can possibly be
+						// if maximumAge == 0 it would mean that the just newly aquired data coming in here is wanted and no checks are needed
 						var periodicLoc = this.checkAgeOfLastKnownLocation(this.listeners[key].maximumAge);
 						if (periodicLoc == null){
 							// lastKnownPosition is older than maximumAge
 							var error = new PositionError();
 							error.code = PositionError.POSITION_UNAVAILABLE;
 							error.message = "No position avaible with age < than maximumAge";
-							this.listeners[key].fail(error);
+							if (this.listeners[key].fail != null){
+								this.listeners[key].fail(error);
+							}
 							return;
-						} 
-					}
+						} else if (typeof periodicLoc.code != 'undefined') {
+							// or lastKnownPosition does not exist as there was no position available
+							if (this.listeners[key].fail != null){
+								this.listeners[key].fail(periodicLoc);
+							}
+							return;
+						}
+					} 
+					// lastPosition is existing and new enough
 					this.listeners[key].success(this.lastPosition);
 					return;
 				}
@@ -683,9 +843,20 @@ BondiGeolocation.prototype.success = function(key, lat, lng, alt, acc, altacc, h
 
 }
 
-BondiGeolocation.prototype.fail = function(key)
+BondiGeolocation.prototype.fail = function(key, message)
 {
-	this.listeners[key].fail();
+	if ((typeof this.listeners[key] != 'undefined') && (this.listeners[key] != null)){
+		if ((typeof this.listeners[key].fail != 'undefined') && (this.listeners[key].fail != null)){
+			var error = new PositionError();
+			error.code = error.POSITION_UNAVAILABLE;
+			if (message != 'noLoc'){
+				error.message = message;
+			} else {
+				error.message = "There is currently no location available";
+			}
+			this.listeners[key].fail(error);
+		}
+	}
 }
 
 /**
@@ -706,24 +877,22 @@ BondiGeolocation.prototype.clearWatch = function(watchId)
 
 }
 
-function Bondi() {
-
-}
-
 
 PhoneGap.addConstructor(function() {
-	if (typeof bondi == "undefined") bondi = new Bondi();
+	if (typeof bondi == 'undefined') bondi = new Bondi();
 });
 PhoneGap.addConstructor(function() {
 	if (typeof bondi.camera == "undefined") bondi.camera = new BondiCameraManager();
-	if (typeof Bondi.cameraManager == "undefined") Bondi.cameraManager = bondi.camera;
+	if (typeof bondi.cameraManager == "undefined") bondi.cameraManager = bondi.camera;
 });
 
 PhoneGap.addConstructor(function() {
-	if (typeof Bondi.geolocation == "undefined") Bondi.geolocation = new BondiGeolocation();
-	if (typeof bondi.geolocation == "undefined") bondi.geolocation = Bondi.geolocation;
+	if (typeof bondi.geolocation == "undefined") bondi.geolocation = new BondiGeolocation();
 });
 
+PhoneGap.addConstructor(function() {
+	if (typeof bondi.devicestatus == "undefined") bondi.devicestatus = new DeviceStatusManager();
+});
 
 DeviceStatusManager.prototype.BONDI_VOCABULARY = "http://bondi.omtp.org/1.1/apis/vocabulary.htm";
 DeviceStatusManager.prototype.BATTERY = "Battery";
@@ -1144,15 +1313,16 @@ DeviceStatusManager.prototype.listVocabularies = function() {
 DeviceStatusManager.prototype.listAspects = function(vocabularyName){
 	var aspectIDs = [];
 	var aspects = null;
-
-	if (typeof vocabulary == "undefined"){
+        var i = 0;
+	
+	if (typeof vocabularyName == "undefined"){
 		aspects = this.defaultVocabulary.aspects;
 	} else {	
 		var found = false;
-		for (var i = 0; i < this.supportedVocabularies.length; i++){
+		for (i = 0; i < this.supportedVocabularies.length; i++){
 			if (this.supportedVocabularies[i].name == vocabularyName){
 				aspects = this.supportedVocabularies[i].aspects;
-				set = true;
+				found = true;
 			}
 		}
 
@@ -1164,7 +1334,7 @@ DeviceStatusManager.prototype.listAspects = function(vocabularyName){
 		}
 	}
 
-	for (var i = 0; i < aspects.length; i++){
+	for (i = 0; i < aspects.length; i++){
 		aspectIDs.push(aspects[i].name);
 	}
 
@@ -1175,15 +1345,24 @@ DeviceStatusManager.prototype.listAspects = function(vocabularyName){
 
 DeviceStatusManager.prototype.getComponents = function(aspectName){
 
-	var aspect = vocabulary.searchAspect(aspectName.aspect);
-
+	var vocabularyName = aspectName.vocabulary;
+	var aspect = null;
+    var error;
+	
+	if (typeof vocabularyName == "undefined"){
+		aspect = this.defaultVocabulary.searchAspect(aspectName.aspect);
+	} else {
+		aspect = this.getVocabulary(vocabularyName).searchAspect(aspectName.aspect);
+		var found = false;
+	}
+	
 	if (aspect == null){
-		var error = new DeviceAPIError();
+		error = new DeviceAPIError();
 		error.code = error.INVALID_ARGUMENT_ERROR;
 		error.message = "Aspect is not part of the used vocabulary";
 		throw error;
 	} else if (aspect.implementedProperties.length < 1){
-		var error = new DeviceAPIError();
+		error = new DeviceAPIError();
 		error.code = error.NOT_FOUND_ERROR;
 		error.message = "Aspect is valid but not implemented";
 		throw error;
@@ -1208,6 +1387,8 @@ DeviceStatusManager.prototype.getVocabulary = function(vocabularyName){
 
 DeviceStatusManager.prototype.listProperties = function(aspectName){
 	var vocabulary = null;
+    var error;
+
 	if (typeof aspectName.vocabulary == "undefined"){
 		vocabulary = this.defaultVocabulary;
 	} else {
@@ -1217,12 +1398,12 @@ DeviceStatusManager.prototype.listProperties = function(aspectName){
 	var aspect = vocabulary.searchAspect(aspectName.aspect);
 
 	if (aspect == null){
-		var error = new DeviceAPIError();
+		error = new DeviceAPIError();
 		error.code = error.INVALID_ARGUMENT_ERROR;
 		error.message = "Aspect is not part of the used vocabulary";
 		throw error;
 	} else if (aspect.implementedProperties.length < 1){
-		var error = new DeviceAPIError();
+		error = new DeviceAPIError();
 		error.code = error.NOT_FOUND_ERROR;
 		error.message = "Aspect is valid but not implemented";
 		throw error;
@@ -1233,6 +1414,8 @@ DeviceStatusManager.prototype.listProperties = function(aspectName){
 
 DeviceStatusManager.prototype.listImplementedProperties = function(aspectName){
 	var vocabulary = null;
+    var error;
+
 	if (typeof aspectName.vocabulary == "undefined"){
 		vocabulary = this.defaultVocabulary;
 	} else {
@@ -1242,12 +1425,12 @@ DeviceStatusManager.prototype.listImplementedProperties = function(aspectName){
 	var aspect = vocabulary.searchAspect(aspectName.aspect);
 
 	if (aspect == null){
-		var error = new DeviceAPIError();
+		error = new DeviceAPIError();
 		error.code = error.INVALID_ARGUMENT_ERROR;
 		error.message = "Aspect is not part of the used vocabulary";
 		throw error;
 	} else if (aspect.implementedProperties.length < 1){
-		var error = new DeviceAPIError();
+		error = new DeviceAPIError();
 		error.code = error.NOT_FOUND_ERROR;
 		error.message = "Aspect is valid but not implemented";
 		throw error;
@@ -1263,19 +1446,24 @@ DeviceStatusManager.prototype.listImplementedProperties = function(aspectName){
  * @param options The set of options which will specify the granularity of notifications.
  */
 DeviceStatusManager.prototype.watchPropertyChange = function(propertyRef, propertyChangeSuccessCallback, options){
+    var error;
 	var property = null;
 	var aspect = null;
 	var component = null;
 	var vocabulary = null; // this.defaultVocabulary;
+	
+	var minChangePercent = 0;
+	var callCallbackOnRegister = false;
 
 	if (typeof options == "undefined"){
 		options = {};
 	}
 
-	if (typeof propertyChangeSuccessCallback == "undefined"){
-		var error = new DeviceAPIError();
+	if (typeof propertyChangeSuccessCallback != 'function' || propertyChangeSuccessCallback == null){
+		error = new DeviceAPIError();
 		error.code = error.INVALID_ARGUMENT_ERROR;
-		error.message = "SuccessCallback has to be defined and must not be null";
+		error.message = "SuccessCallback has to be defined and a function";
+		throw error;
 	}
 
 	if (typeof propertyRef.vocabulary != "undefined" && propertyRef.vocabulary != null){
@@ -1285,7 +1473,7 @@ DeviceStatusManager.prototype.watchPropertyChange = function(propertyRef, proper
 	}
 
 	if ((typeof propertyRef.property == "undefined") || (propertyRef.property == null)){
-		var error = new DeviceAPIError();
+		error = new DeviceAPIError();
 		error.code = error.INVALID_ARGUMENT_ERROR;
 		error.message = "property must be defined and not be null";
 		throw error;
@@ -1298,12 +1486,12 @@ DeviceStatusManager.prototype.watchPropertyChange = function(propertyRef, proper
 		aspect = vocabulary.searchAspect(propertyRef.aspect);
 
 		if (aspect == null){
-			var error = new DeviceAPIError();
+			error = new DeviceAPIError();
 			error.code = error.INVALID_ARGUMENT_ERROR;
 			error.message = "Aspect is not part of the used vocabulary";
 			throw error;
 		} else if (aspect.implementedProperties.length < 1){
-			var error = new DeviceAPIError();
+			error = new DeviceAPIError();
 			error.code = error.NOT_FOUND_ERROR;
 			error.message = "Aspect is valid but not implemented";
 			throw error;
@@ -1319,12 +1507,12 @@ DeviceStatusManager.prototype.watchPropertyChange = function(propertyRef, proper
 		aspect = vocabulary.searchAspectByProperty(property);
 
 		if (aspect == null){
-			var error = new DeviceAPIError();
+			error = new DeviceAPIError();
 			error.code = error.INVALID_ARGUMENT_ERROR;
 			error.message = "Aspect is not part of the used vocabulary";
 			throw error;
 		} else if (aspect.implementedProperties.length < 1){
-			var error = new DeviceAPIError();
+			error = new DeviceAPIError();
 			error.code = error.NOT_FOUND_ERROR;
 			error.message = "Aspect is valid but not implemented";
 			throw error;
@@ -1341,54 +1529,55 @@ DeviceStatusManager.prototype.watchPropertyChange = function(propertyRef, proper
 	}
 
 	var now = new Date().getTime();
-	var key = this.listeners.push({propRef: propertyRef, callBack: propertyChangeSuccessCallback, ops : options, startTime : now, lastCallTime: now}) -1;
-
-	var minChangePercent = 0;
-	var minTimeout = 0;
-	var maxTimeout = -1;
-	var callCallbackOnRegister = false;
-
+	var key = this.listeners.push({propRef:propertyRef, callBack:propertyChangeSuccessCallback, ops:options, timers:[], propertyChangedFlag:false, lastCallTime:now}) -1;
+	
 	if (typeof options.minChangePercent != "undefined"){
 		minChangePercent = options.minChangePercent;
 	}
+	
 
+	var minTSet = false;
 	if (typeof options.minTimeout != "undefined"){
-		if (minTimeout < 0){
-			var error = new DeviceAPIError();
+		minTSet = true;
+		if (options.minTimeout < 0){
+			error = new DeviceAPIError();
 			error.code = error.INVALID_ARGUMENT_ERROR;
-			error.message = "minTimeout has to be > 0";
+			error.message = "minTimeout has to be >= 0";
+			this.listeners[key] = null;
 			throw error;
-		}
-		minTimeout = options.minTimeout;
+		}	
 	}
-
-	if (typeof options.maxTimeout != "undefined"){
-		maxTimeout = options.maxTimeout;
-
-		if (maxTimeout < minTimeout){
-			var error = new DeviceAPIError();
-			error.code = error.INVALID_ARGUMENT_ERROR;
-			error.message = "maxTimeout has to be greater than minTimeout. \n minTimeout was: " + minTimeout;
-			throw error;
+		
+	var maxTSet = false;
+	if (typeof options.maxTimeout != 'undefined'){
+		maxTSet = true;
+		if (minTSet){
+			if (options.maxTimeout < options.minTimeout){
+				error = new DeviceAPIError();
+				error.code = error.INVALID_ARGUMENT_ERROR;
+				error.message = "maxTimeout has to be greater than minTimeout. \n minTimeout was: " + options.minTimeout;
+				this.listeners[key] = null;
+				throw error;
+			}
+		} else {
+			if (options.maxTimeout < -1 ){
+				error = new DeviceAPIError();
+				error.code = error.INVALID_ARGUMENT_ERROR;
+				error.message = "maxTimeout has to be greater than -1";
+				this.listeners[key] = null;
+				throw error;
+			}
 		}
-
-		// startTime and lastCallTime was set above already while requesting a new key
-
-		var that = this;
-		var timer = new BondiDeviceMaxTimeoutTimer(key, maxTimeout, this);
-		setTimeout(function(){
-			timer.onTimer();
-		}, maxTimeout);
-		this.listeners[key].timer = timer;
 	}
-
+	
 	if (typeof options.callCallbackOnRegister != "undefined" && options.callCallbackOnRegister != null){
 		if (options.callCallbackOnRegister == true || options.callCallbackOnRegister == false){
 			callCallbackOnRegister = options.callCallbackOnRegister;
 		}else {
-			var error = new DeviceAPIError();
+			error = new DeviceAPIError();
 			error.code = error.INVALID_ARGUMENT_ERROR;
 			error.message = "callCallbackOnRegister, if set, must be true or false";
+			this.listeners[key] = null;
 			throw error;
 		}
 	}
@@ -1398,23 +1587,32 @@ DeviceStatusManager.prototype.watchPropertyChange = function(propertyRef, proper
 			DStatus.setupBatteryLevelListener(key, minChangePercent);
 			if (callCallbackOnRegister){
 				this.propertyChanged(key, DStatus.getBatteryLevel());
+			} else {
+				this.listeners[key].lastValue = DStatus.getBatteryLevel();
+				this.listeners[key].propertyChanged = true;
 			}
 
 		} else if (property == "batteryTechnology"){
 			DStatus.setupBatteryTechnologyListener(key);
 			if (callCallbackOnRegister){
 				this.propertyChanged(key, DStatus.getBatteryTechnology());
+			} else {
+				this.listeners[key].lastValue = DStatus.getBatteryTechnology();
+				this.listeners[key].propertyChanged = true;
 			}
 
 		} else if (property == "batteryBeingCharged"){
 			DStatus.setupBatteryIsChargedListener();
 			if (callCallbackOnRegister){
 				this.propertyChanged(key, DStatus.batteryIsBeingCharged());
+			} else {
+				this.listeners[key].lastValue = DStatus.batteryIsBeingCharged();
+				this.listeners[key].propertyChanged = true;
 			}
 		}
 
 	} else if (aspect.name == this.OS){
-		var error = new DeviceAPIError();
+		error = new DeviceAPIError();
 		error.code = error.NOT_FOUND_ERROR;
 		error.message = "watchPropertyChange for " + property + " is not implemented";
 		throw error;
@@ -1443,96 +1641,140 @@ DeviceStatusManager.prototype.watchPropertyChange = function(propertyRef, proper
 		}
 	}
 
+	var that = this;
+	if (minTSet && options.minTimeout > 0){
+		//activate minTimer
+		var minTimer = {};
+		minTimer.time = options.minTimeout;
+		minTimer.title = "minTimeout";
+		
+		if (options.minTimeout < 2000){
+			options.minTimeout = 2000;
+		}
+		
+		var minTimerID = setTimeout(function(){
+			that.propertyChanged(key,null,"minTimeout");			
+		}, options.minTimeout); 
+		minTimer.id = minTimerID;
+		this.listeners[key].timers.push(minTimer);
+	}
+	
+	if (maxTSet && options.maxTimeout > 0){
+		//activate maxTimer
+		var maxTimer = {};
+		maxTimer.time = options.maxTimeout;
+		maxTimer.title = "maxTimeout";
+		
+		if (options.maxTimeout < 2000){
+			options.maxTimeout = 2000;
+		}
+		
+		var maxTimerID = setTimeout(function(){
+			that.propertyChanged(key,null,"maxTimeout");			
+		}, options.maxTimeout); 
+		maxTimer.id = maxTimerID;
+		this.listeners[key].timers.push(maxTimer);
+	}
+	
+	// Java Version
+//	DStatus.startTimer(key, options.minTimeout, options.maxTimeout);
+//	DStatus.startTimer(key, 1000, 5000);
+	
 	return key;
 }
 
+DeviceStatusManager.prototype.restartTimers = function (key) {
 
-function BondiDeviceMaxTimeoutTimer(key, maxTimeout, that){
+	if ((typeof this.listeners[key] != 'undefined') && this.listeners[key] != null){
 
-	this.key = key;
-	this.maxTimeout = maxTimeout;
-	this.that = that;
-}
-
-BondiDeviceMaxTimeoutTimer.prototype.onTimer = function(){
-	var record = this.that.listeners[this.key];
-	if (record == null){
-		/* listener was already deleted. 
-		 * Most likely the listener was unregistered using clearWatchProperty, 
-		 * so as this timer isn't needed anymore let's just shutdown ourself too
-		 */
-		clearTimeout(this);
-		return;
-	}
-	var startedAt = record.startTime;
-	var lastCall = record.lastCallTime;
-	var now = new Date().getTime();
-
-	/*
-	 *  propertyChange was already called...
-	 *  since timers in Javascript are imprecise first let's check if we realy don't have to
-	 *  do anything and than act accordingly
-	 *  
-	 */
-	record.startedAt = now;
-
-	var difference = lastCall - startedAt;
-
-	if ( (difference <= 0) || (difference > this.maxTimeout) ){
-		// no call since timer started or timer is (very) late and has to act
-		record.callBack.onPropertyChange(record.propRef, record.lastValue);
-		record.lastCallTime = now;
-		
-		var timer = new BondiDeviceMaxTimeoutTimer(this.key, this.maxTimeout, this.that);
-
-		setTimeout(	function(){ timer.onTimer(); }, this.maxTimeout);
-	} else {
-		// maxTimeout from lastCall is still some time away
-		var timer = new BondiDeviceMaxTimeoutTimer(this.key, this.maxTimeout, this.that); 
-		var newTimeout = this.maxTimeout - difference;
-
-		setTimeout(	function(){ timer.onTimer(); }, newTimeout);
-
-	}
-	// keep track when we last took a look at these things
-	record.startTime = now;
-	// setting this enables the clearWatchProperty method to clear this timer on unregister procedure of it's listener
-	record.timer = timer;
-	this.that.listeners[this.key] = record;
-	clearTimeout(this);
-}
-
-DeviceStatusManager.prototype.propertyChanged = function(key, propertyValue){
-	var record = this.listeners[key];
-
-	var options = record.ops;
-	if (typeof options.minTimeout != "undefined"){
-		var minTimeout = options.minTimeout;
-		var lastTime = record.lastCallTime;
-		var now = new Date().getTime();
-		if ((now - lastTime) > minTimeout){
-			// we are allowed to call
-			record.callBack.onPropertyChange(record.propRef, propertyValue);
-			// probably better: callback is a function and not an object
-			//  record.callBack(record.propRef, propertyValue);
+		if (typeof this.listeners[key].timers != 'undefined'){
+			var timers = this.listeners[key].timers;
+			var that = this;
 			
-			// store last time we called
-			record.lastCallTime = now;
-		} 
-	} else {
-		record.callBack.onPropertyChange(record.propRef, propertyValue);
+			this.listeners[key].timers = [];
+			while (timers.length > 0){
+				timer = timers.pop();
+				clearTimeout(timer.id);
+				var newID = setTimeout(function(){
+					that.propertyChanged(key,null,timer.title);
+				}, timer.time);
+				timer.id = newID;
+				this.listeners[key].timers.push(timer);
+			}
+		}
+	}
+}
+
+
+DeviceStatusManager.prototype.propertyChanged = function(key, propertyValue, title){
+	
+	var minCall = false;
+	var maxCall = false;
+	if (typeof title != "undefined"){
+		if (title == "minTimeout"){
+			minCall = true;
+		} else {
+			maxCall = true;
+		}
+	}
+	
+	if ((typeof this.listeners[key] != 'undefined') && (this.listeners[key] != null)){
+		if (typeof this.listeners[key].callBack != "undefined"){
+			var options = this.listeners[key].ops;
+
+			if (propertyValue != null){
+				// update value of watched property
+				this.listeners[key].lastValue = propertyValue;
+				// signal to possible later calls that an update took place since the last callback call
+				this.listeners[key].propertyChangedFlag = true;
+			}
+
+			if ((minCall && this.listeners[key].propertyChangedFlag) || maxCall){
+				// minimal waiting time before next possible call is done and property has changed meanwhile
+				this.listeners[key].propertyChangedFlag = false;
+				this.listeners[key].lastCallTime = now;
+				this.listeners[key].callBack(this.listeners[key].propRef, this.listeners[key].lastValue);
+				this.restartTimers(key);
+				//DStatus.restartTimer(key);
+				return;
+			}
+
+			// Check if value can be given to callback or if we have to wait
+			if (typeof options.minTimeout != "undefined"){
+				var minTimeout = options.minTimeout;
+				var lastTime = this.listeners[key].lastCallTime;
+				var now = new Date().getTime();
+				if ((now - lastTime) > minTimeout){
+					// we are allowed to call
+					this.listeners[key].callBack(this.listeners[key].propRef, this.listeners[key].lastValue);
+					// signal that the property was recently given to callback and has not changed yet
+					this.listeners[key].propertyChangedFlag = false;
+
+					// store last time we called
+					this.listeners[key].lastCallTime = now;
+					this.restartTimers(key);
+					//DStatus.restartTimer(key);
+				} 
+			} else {
+				this.listeners[key].callBack(this.listeners[key].propRef, this.listeners[key].lastValue);
+				this.listeners[key].lastCallTime = now;
+				this.listeners[key].propertyChangedFlag = false;
+				this.restartTimers(key);
+//				DStatus.restartTimer(key);
+			}
+
+		}
+
+	} else if (minCall || maxCall){
+//		DStatus.cancelTimer(key);
 	}
 
-	// the last value we reported
-	record.lastValue = propertyValue;
-	// now let's put it into the archives
-	this.listeners[key] = record;
-
 }
+
 
 /**
  * clearPropertyChange.
- * @param watchHandlerKey returned by DeviceStatusManager::watchPropertyChange()
+ * @param key - watchHandlerKey returned by DeviceStatusManager::watchPropertyChange()
  * @throws DeviceAPIError INVALID_ARGUMENT_ERROR
  */
 DeviceStatusManager.prototype.clearPropertyChange = function(key){
@@ -1560,10 +1802,11 @@ DeviceStatusManager.prototype.clearPropertyChange = function(key){
 	} else {
 		alert("tried to remove a listener, but there was no unregister-procedure in clearPropertyChange for it");
 	}
-	if (typeof this.listeners[key].timer != "undefined" && this.listeners[key].timer != null){
-		var timer = this.listeners[key].timer;
-		clearTimeout(timer);
-	}
+//	if (typeof this.listeners[key].timer != "undefined" && this.listeners[key].timer != null){
+//		var timer = this.listeners[key].timer;
+//		clearTimeout(timer);
+//	}
+//	DStatus.cancelTimer(key);
 	this.listeners[key] = null;
 }
 
@@ -1578,6 +1821,7 @@ DeviceStatusManager.prototype.clearAllPropertyChange = function(){
 
 
 DeviceStatusManager.prototype.getPropertyValue = function(propertyRef){
+    var error;
 	var property = null;
 	var aspect = null;
 	var component = null;
@@ -1590,7 +1834,7 @@ DeviceStatusManager.prototype.getPropertyValue = function(propertyRef){
 	}
 
 	if ((typeof propertyRef.property == "undefined") || (propertyRef.property == null)){
-		var error = new DeviceAPIError();
+		error = new DeviceAPIError();
 		error.code = error.INVALID_ARGUMENT_ERROR;
 		error.message = "property must be defined and not be null";
 		throw error;
@@ -1603,12 +1847,12 @@ DeviceStatusManager.prototype.getPropertyValue = function(propertyRef){
 		aspect = vocabulary.searchAspect(propertyRef.aspect);
 
 		if (aspect == null){
-			var error = new DeviceAPIError();
+			error = new DeviceAPIError();
 			error.code = error.INVALID_ARGUMENT_ERROR;
 			error.message = "Aspect is not part of the used vocabulary";
 			throw error;
 		} else if (aspect.implementedProperties.length < 1){
-			var error = new DeviceAPIError();
+			error = new DeviceAPIError();
 			error.code = error.NOT_FOUND_ERROR;
 			error.message = "Aspect is valid but not implemented";
 			throw error;
@@ -1624,12 +1868,12 @@ DeviceStatusManager.prototype.getPropertyValue = function(propertyRef){
 		aspect = vocabulary.searchAspectByProperty(property);
 
 		if (aspect == null){
-			var error = new DeviceAPIError();
+			error = new DeviceAPIError();
 			error.code = error.INVALID_ARGUMENT_ERROR;
 			error.message = "Aspect is not part of the used vocabulary";
 			throw error;
 		} else if (aspect.implementedProperties.length < 1){
-			var error = new DeviceAPIError();
+			error = new DeviceAPIError();
 			error.code = error.NOT_FOUND_ERROR;
 			error.message = "Aspect is valid but not implemented";
 			throw error;
@@ -1649,14 +1893,14 @@ DeviceStatusManager.prototype.getPropertyValue = function(propertyRef){
 		if (property == "batteryLevel"){
 			return DStatus.getBatteryLevel();
 		} else if (property == "batteryCapacity"){
-			var error = new DeviceAPIError();
+			error = new DeviceAPIError();
 			error.code = error.NOT_FOUND_ERROR;
 			error.message = "batteryCapacity is not implemented";
 			throw error;
 		} else if (property == "batteryTechnology"){
 			var technology = DStatus.getBatteryTechnology();
 			if (technology == "unknown"){
-				var error = new DeviceAPIError();
+				error = new DeviceAPIError();
 				error.code = error.UNKNOWN_ERROR;
 				error.message = "Unable to determine technology of this battery at the moment";
 				throw error;
@@ -1664,7 +1908,7 @@ DeviceStatusManager.prototype.getPropertyValue = function(propertyRef){
 				return technology;
 			}
 		} else if (property == "batteryTime"){
-			var error = new DeviceAPIError();
+			error = new DeviceAPIError();
 			error.code = error.NOT_FOUND_ERROR;
 			error.message = "batteryTime is not implemented";
 			throw error;
@@ -1675,7 +1919,7 @@ DeviceStatusManager.prototype.getPropertyValue = function(propertyRef){
 			} else if (charge == "false"){
 				return false;
 			} else {
-				var error = new DeviceAPIError();
+				error = new DeviceAPIError();
 				error.code = error.UNKNOWN_ERROR;
 				error.message = "Unable to determine if battery is being charged at the moment";
 				throw error;
@@ -1692,7 +1936,7 @@ DeviceStatusManager.prototype.getPropertyValue = function(propertyRef){
 		} else if (property == "vendor"){
 			return "Google Inc.";
 		} else {
-			var error = new DeviceAPIError();
+			error = new DeviceAPIError();
 			error.code = error.NOT_FOUND_ERROR;
 			error.message = "property " + property + " is not implemented";
 			throw error;
@@ -1701,13 +1945,14 @@ DeviceStatusManager.prototype.getPropertyValue = function(propertyRef){
 }
 
 DeviceStatusManager.prototype.setPropertyValue = function(propertyRef){
+    var error;
 	var property = null;
 	var aspect = null;
 	var component = null;
 	var vocabulary = this.defaultVocabulary;
 
 	if ((typeof propertyRef.property == "undefined") || (propertyRef.property == null)){
-		var error = new DeviceAPIError();
+		error = new DeviceAPIError();
 		error.code = error.INVALID_ARGUMENT_ERROR;
 		error.message = "property must be defined and not be null";
 		throw error;
@@ -1720,12 +1965,12 @@ DeviceStatusManager.prototype.setPropertyValue = function(propertyRef){
 		aspect = vocabulary.searchAspect(propertyRef.aspect);
 
 		if (aspect == null){
-			var error = new DeviceAPIError();
+			error = new DeviceAPIError();
 			error.code = error.INVALID_ARGUMENT_ERROR;
 			error.message = "Aspect is not part of the used vocabulary";
 			throw error;
 		} else if (aspect.implementedProperties.length < 1){
-			var error = new DeviceAPIError();
+			error = new DeviceAPIError();
 			error.code = error.NOT_FOUND_ERROR;
 			error.message = "Aspect is valid but not implemented";
 			throw error;
@@ -1741,12 +1986,12 @@ DeviceStatusManager.prototype.setPropertyValue = function(propertyRef){
 		aspect = vocabulary.searchAspectByProperty(property);
 
 		if (aspect == null){
-			var error = new DeviceAPIError();
+			error = new DeviceAPIError();
 			error.code = error.INVALID_ARGUMENT_ERROR;
 			error.message = "Aspect is not part of the used vocabulary";
 			throw error;
 		} else if (aspect.implementedProperties.length < 1){
-			var error = new DeviceAPIError();
+			error = new DeviceAPIError();
 			error.code = error.NOT_FOUND_ERROR;
 			error.message = "Aspect is valid but not implemented";
 			throw error;
@@ -1762,17 +2007,19 @@ DeviceStatusManager.prototype.setPropertyValue = function(propertyRef){
 		}
 	}
 
-	var error = new DeviceAPIError();
+	error = new DeviceAPIError();
 	error.code = error.NOT_SUPPORTED_ERROR;
 	error.message = "The value cannot be set";
 	throw error;
 }
 
+
 DeviceStatusManager.prototype.setDefaultVocabulary = function(vocabulary){
-	if (typeof vocabulary == "undefined" || vocabulary == null){
-		var error = new DeviceAPIError();
+    var error;
+	if (typeof vocabulary == "undefined" || vocabulary == null || vocabulary == ''){
+		error = new DeviceAPIError();
 		error.code = error.INVALID_ARGUMENT_ERROR;
-		error.message = "Vocabulary must be defined and not be null";
+		error.message = "Vocabulary must be defined, not empty and not be null";
 		throw error;
 	}
 
@@ -1786,15 +2033,12 @@ DeviceStatusManager.prototype.setDefaultVocabulary = function(vocabulary){
 	}
 
 	if (!set){
-		var error = new DeviceAPIError();
+		error = new DeviceAPIError();
 		error.code = error.NOT_FOUND_ERROR;
 		error.message = "Vocabulary is not part of supported vocabularies";
 		throw error;
 	}
 
-	// TODO When supporting more than the default vocabulary, fill in method to
-	// check and set the vocabulary as default that's matching the IRI in the
-	// parameter
 }
 
 function oc(a)
@@ -1808,10 +2052,10 @@ function oc(a)
 }
 
 
-PhoneGap.addConstructor(function() {
-	if (typeof bondi.devicestatus == "undefined") bondi.devicestatus = new DeviceStatusManager();
-	if (typeof bondi.devicestatusManager == "undefined") bondi.devicestatusManager = bondi.devicestatus;
-});
+//PhoneGap.addConstructor(function() {
+//	if (typeof bondi.devicestatus == "undefined") bondi.devicestatus = new DeviceStatusManager();
+//	if (typeof bondi.devicestatusManager == "undefined") bondi.devicestatusManager = bondi.devicestatus;
+//});
 
 
 //bondi fileSystem
@@ -1821,7 +2065,7 @@ PhoneGap.addConstructor(function() {
  */
 function FileSystemManager(){
 	this.maxPathLength = 9999; // should be unlimited (HFS+ or FAT32 depending on OS)
-	this.legalLocations = ["wgt:package","wgt:private","wgt:public","wgt:temp","images","videos", "documents","images", "sdcard"];
+	this.legalLocations = ["wgt:package","wgt:private","wgt:public","wgt:temp","images","videos", "documents","images", "sdcard", "temp"];
 	this.eventListener = [];
 }
 PhoneGap.addConstructor(function() {
@@ -1836,17 +2080,30 @@ PhoneGap.addConstructor(function() {
  * @throws DeviceAPIError, INVALID_ARGUMENT_ERROR
  */
 FileSystemManager.prototype.getDefaultLocation = function(specifier, minFreeSpace) {
+
 	if (typeof minFreeSpace == 'undefined')
 		minFreeSpace = 0;
 
+	if (typeof minFreeSpace != 'number') {
+		var error = new DeviceAPIError();
+		error.code = error.INVALID_ARGUMENT_ERROR;
+		error.message = "minFreeSpace must be a number";
+		throw error;
+	}
+	
 	if (minFreeSpace >= 0 && specifier in oc(this.legalLocations)) {
 		var defaultLocation = FileSystem.getDefaultLocation(specifier,minFreeSpace);
-		if (typeof defaultLocation == 'undefined')
+		if (typeof defaultLocation == 'undefined') {
 			defaultLocation = null;
+			throw new DeviceAPIError(10001);
+			return;
+		} else {
+			defaultLocation = defaultLocation + '';
+		}
 		return defaultLocation;
 	}
-	else{		 
-		throw new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR);    
+	else {
+		throw new DeviceAPIError(10001);
 		return null;
 	}
 }
@@ -1880,7 +2137,7 @@ FileSystemManager.prototype.getRootLocations = function() {
 	var files = eval( "(" + FileSystem.getRootLocations() + ")");
 	var result = [];
 	for (var i=0;i<files.length;i++){
-		result[i] = this.resolve(files[i]);
+		result.push(files[i] + '');
 	}
 	return result;
 }
@@ -1895,8 +2152,12 @@ FileSystemManager.prototype.getRootLocations = function() {
 FileSystemManager.prototype.resolveSynchron = function(location) {
 	var returnstring = FileSystem.resolve(location);
 	var returnvalue = eval("(" + returnstring + ")");
+
 	if (returnvalue["error"] != null) {
-		throw new GenericError(returnvalue["error"]);
+		var error = new DeviceAPIError();
+		error.code = returnvalue["error"]; //error.IO_ERROR;
+		error.message = "location could not be read -> is no file or directory";
+		throw error;
 	} else {
 		var result = new BondiFile();
 
@@ -1905,8 +2166,8 @@ FileSystemManager.prototype.resolveSynchron = function(location) {
 		result.path = returnvalue["path"];
 		result.absolutePath = returnvalue["absolutepath"];
 		result.fileSize = returnvalue["filesize"];
-		result.created = returnvalue["created"];
-		result.modified = returnvalue["modified"];
+		result.created = new Date(returnvalue["created"]);
+		result.modified = new Date(returnvalue["modified"]);
 		result.isFile = returnvalue["isfile"];
 		result.isDirectory = returnvalue["isdirectory"];
 		result.parent = returnvalue["parent"];
@@ -1924,16 +2185,36 @@ FileSystemManager.prototype.resolveSynchron = function(location) {
  * @throws INVALID_ARGUMENT_ERROR if invalid location or invalid mode was given. 
  */
 FileSystemManager.prototype.resolve = function(successCallback, errorCallback, location, mode) {
-	
+	var error;
 	// check the parameter
-	if (typeof successCallback != "function") {
-		throw new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR);   
-	}
 	if (typeof errorCallback != "function") {
-		throw new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR);   
+		error = new DeviceAPIError();
+		error.code = error.INVALID_ARGUMENT_ERROR;
+		error.message = "errorCallback should be a function";
+		throw error;
 	}
-	if (typeof mode != "undefined") {
+	if (typeof successCallback != "function") {
+		error = new DeviceAPIError();
+		error.code = error.INVALID_ARGUMENT_ERROR;
+		error.message = "successCallback should be a function";
+		errorCallback(error);
+		return;
+	}
+	if (typeof mode == "undefined") {
 		mode = "r";
+	} else if (!(mode == 'r' || mode == 'rw' )){
+		error = new DeviceAPIError();
+		error.code = error.INVALID_ARGUMENT_ERROR;
+		error.message = "mode has to be 'r' or 'rw' if defined";
+		errorCallback(error);
+		return;
+	}
+	if (typeof location == "undefined" || location == null) {
+		error = new DeviceAPIError();
+		error.code = error.INVALID_ARGUMENT_ERROR;
+		error.message = "location has to be defined and != null";
+		errorCallback(error);
+		return;
 	}
 	setTimeout(function() {
 		try {
@@ -1956,6 +2237,13 @@ FileSystemManager.prototype.resolve = function(successCallback, errorCallback, l
  * @throws DeviceAPIError
  */
 FileSystemManager.prototype.registerEventListener = function(listener) {
+	
+	if (typeof listener != 'function'){
+		var error = new DeviceAPIError();
+		error.code = error.INVALID_ARGUMENT_ERROR;
+		error.message = "listener has to be defined and a function.";
+    	throw error;
+	}
 	this.eventListener.push(listener);
 }
 
@@ -1969,6 +2257,14 @@ FileSystemManager.prototype.registerEventListener = function(listener) {
  * @throws DeviceAPIError
  */
 FileSystemManager.prototype.unregisterEventListener = function(listener) {
+	
+	if (typeof listener != 'function'){
+		var error = new DeviceAPIError();
+		error.code = error.INVALID_ARGUMENT_ERROR;
+		error.message = "listener has to be defined and a function.";
+    	throw error;
+	}
+	
 	this.eventListener = this.eventListener.filter(
 			function(element,index,array) {
 				return (listener !== element);
@@ -2059,7 +2355,10 @@ BondiFile.prototype.listFiles = function() {
 BondiFile.prototype.resolve = function(location) {
 	var returnvalue = eval("(" + FileSystem.resolve(location, this.absolutePath) + ")");
 	if (returnvalue["error"] != null) {
-		throw new GenericError(returnvalue["error"]);
+		var error = new DeviceAPIError();
+		error.code = error.IO_ERROR;
+		error.message = returnvalue["error"]; 
+		throw error;
 	} else {
 		var result = new BondiFile();
 		result.readOnly = returnvalue["readonly"];
@@ -2067,8 +2366,8 @@ BondiFile.prototype.resolve = function(location) {
 		result.path = returnvalue["path"];
 		result.absolutePath = returnvalue["absolutepath"];
 		result.fileSize = returnvalue["filesize"];
-		result.created = returnvalue["created"];
-		result.modified = returnvalue["modified"];
+		result.created = new Date(returnvalue["created"]);
+		result.modified = new Date(returnvalue["modified"]);
 		result.isFile = returnvalue["isfile"];
 		result.isDirectory = returnvalue["isdirectory"];
 		result.parent = this;
@@ -2092,7 +2391,10 @@ BondiFile.prototype.open = function(mode, encoding) {
 	var retval = eval('(' + ret + ')');
 	if (retval["error"] != null) {
 		FileSystem.log(this.name + ":" + mode + ":" + encoding + " =>" + retval["error"]);
-		throw new GenericError(retval["error"]);
+		var error = new DeviceAPIError();
+		error.code = parseInt(retval["error"]);
+		error.message = retval["error"];
+		throw error;
 	}
 	var stream = new FileStream();
 	stream.id = retval["fd"];
@@ -2120,7 +2422,10 @@ BondiFile.prototype.copyTo = function(successCallback,errorCallback,filePath,ove
 	bondi.filesystem.fail = errorCallback;
 	var result = FileSystem.copyTo(this.absolutePath, filePath,overwrite);
 	if (typeof(result) != 'undefined') {
-		throw new DeviceAPIError(DeviceAPIError.IO_ERROR);
+		var error = new DeviceAPIError();
+		error.code = error.IO_ERROR;
+		error.message = result;
+		throw error;
 	}
 	var pe = new PendingOperation();
 	pe.cancel = function() {
@@ -2145,11 +2450,36 @@ BondiFile.prototype.copyTo = function(successCallback,errorCallback,filePath,ove
  *             DeviceAPIError)
  */
 BondiFile.prototype.moveTo = function(successCallback, errorCallback, filePath, overwrite) {
+	var error;
+	
+	if (typeof errorCallback != "function"){
+		error = new DeviceAPIError();
+		error.code = error.INVALID_ARGUMENT_ERROR;
+		error.message = "errorCallback has to be defined and a function";
+		throw error;
+	} else if (typeof successCallback != "function"){
+        error = new DeviceAPIError();
+		error.code = error.INVALID_ARGUMENT_ERROR;
+		error.message = "successCallback has to be defined and a function";
+		errorCallback(error);
+		return;
+	} else if (typeof filePath != "string"){
+		error = new DeviceAPIError();
+		error.code = error.INVALID_ARGUMENT_ERROR;
+		error.message = "filePath has to be defined";
+		errorCallback(error);
+		return;
+	}
+	
 	bondi.filesystem.success = successCallback;
 	bondi.filesystem.fail = errorCallback;
 	var result = FileSystem.moveTo(this.absolutePath, filePath, overwrite);
-	if (typeof(result) != 'undefined') {
-		throw new DeviceAPIError(DeviceAPIError.IO_ERROR);
+	if ((typeof result != 'undefined') && result != null) {
+		error = new DeviceAPIError();
+		error.code = error.IO_ERROR;
+		error.message = result;
+		errorCallback(error);
+		return;
 	}
 	var pe = new PendingOperation();
 	pe.cancel = function() {
@@ -2157,6 +2487,7 @@ BondiFile.prototype.moveTo = function(successCallback, errorCallback, filePath, 
 	}
 	return pe;
 }
+
 
 /**
  * Creates a directory.
@@ -2168,11 +2499,14 @@ BondiFile.prototype.moveTo = function(successCallback, errorCallback, filePath, 
  *             DeviceAPIError)
  */
 BondiFile.prototype.createDirectory = function(dirPath) {
+	var error;
 	var returnstring = FileSystem.createDirectory(this.absolutePath, dirPath);
 	var returnvalue = eval("(" + returnstring + ")");
 	if (returnvalue["error"] != null) {
-		// this should probably not a generic error
-		throw new GenericError(returnvalue["error"]);
+		error = new DeviceAPIError();
+		error.code = returnvalue["error"];
+		error.message = returnvalue["errorMessage"];
+		throw error;
 	} else {
 		var result = new BondiFile();
 		result.parent = this;
@@ -2208,8 +2542,17 @@ BondiFile.prototype.createFile = function(filePath){
 	var returnstring = FileSystem.createFile(this.absolutePath, filePath);
 	var returnvalue = eval("(" + returnstring + ")");
 	if (returnvalue["error"] != null) {
-		// this should probably not be a generic error
-		throw new GenericError(returnvalue["error"]);
+		if (returnvalue["error"] != 20000){
+			error = new DeviceAPIError();
+			error.code = returnvalue["error"];
+			error.message = returnvalue["errorMessage"];
+			throw error;
+		} else {
+			error = new SecurityError();
+			error.code = returnvalue["error"];
+			error.message = returnvalue["errorMessage"];
+			throw error;
+		}
 	} else {
 		var result = new BondiFile();
 		result.parent = this;
@@ -2238,7 +2581,8 @@ BondiFile.prototype.createFile = function(filePath){
  *             DeviceAPIError)
  */
 BondiFile.prototype.deleteDirectorySynchron = function(recursive) {
-	var ret = FileSystem.deleteDirectory(this.absolutePath, recursive + '');
+	var myDoc = this;
+	var ret = FileSystem.deleteDirectory(myDoc.absolutePath, recursive + '');
 	if (ret == 'true' || ret == 'false')
 		return ret;
 	var returnvalue = eval("(" + ret + ")");
@@ -2256,6 +2600,7 @@ BondiFile.prototype.deleteDirectorySynchron = function(recursive) {
  */
 BondiFile.prototype.deleteDirectory = function(successCallback, errorCallback, recursive) {
 	
+	var myDoc = this;
 	// check the parameter
 	if (typeof successCallback != "function") {
 		throw new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR);   
@@ -2265,7 +2610,7 @@ BondiFile.prototype.deleteDirectory = function(successCallback, errorCallback, r
 	}
 	setTimeout(function() {
 		try {
-			var ret = bondi.filesystem.deleteDirectorySynchron(recursive);
+			var ret = myDoc.deleteDirectorySynchron(recursive);
 			successCallback(ret);
 		} catch (e)	{
 			errorCallback(e);
@@ -2401,7 +2746,7 @@ FileStream.prototype.readBytes = function(byteCount){
  * @throws DeviceAPIError
  */
 FileStream.prototype.readBase64 = function(byteCount) {
-	var ret =  FileSystem.read64(this.int_id, this.int_position, charCount);
+	var ret =  FileSystem.read64(this.int_id, this.int_position, byteCount);
 	var returnvalue = eval('(' + ret + ')');
 	if (returnvalue["error"] != null)
 		throw new DeviceAPIError(returnvalue["error"]);
@@ -2538,6 +2883,7 @@ MessagingManager.prototype.smsExclusives = [];
 MessagingManager.prototype.createSMS = function(smsParams) {
 	
 	var newsms = new SMS();
+    var error;
 	
 	if (typeof smsParams == "object"){
 		if (typeof smsParams.body != "undefined"){
@@ -2552,7 +2898,7 @@ MessagingManager.prototype.createSMS = function(smsParams) {
 					newsms.appendRecipient(smsParams.to[i]);
 				}
 			} else {
-				var error = new DeviceAPIError();
+				error = new DeviceAPIError();
 				error.code = error.INVALID_ARGUMENT_ERROR;
 				error.message = "there must be at least one recipient for this sms";
 				throw error;
@@ -2563,7 +2909,7 @@ MessagingManager.prototype.createSMS = function(smsParams) {
 			mMessageHandler.storeSMS(newsms.datetime, newsms.to, newsms.body, this.DRAFTS_FOLDER);
 		}
 	} else {
-		var error = new DeviceAPIError();
+		error = new DeviceAPIError();
 		error.code = error.INVALID_ARGUMENT_ERROR;
 		error.message = "smsParams must be a map";
 		throw error;
@@ -2580,7 +2926,7 @@ MessagingManager.prototype.createSMS = function(smsParams) {
  * committed success's will be strings
  * 
  * committed errors have the fields:
- * 	error.name
+ * 	error.code
  * 	error.message
  * 
  * @param successCallback the successCallback
@@ -2590,26 +2936,34 @@ MessagingManager.prototype.createSMS = function(smsParams) {
  * @throws SecurityError, DeviceAPIError, MessagingError
  */
 MessagingManager.prototype.sendSMS = function(successCallback, errorCallback, sms, store){
-	
+	var error;
 	// check the parameter
-	if (typeof successCallback != "function"){
-		var error = new DeviceAPIError();
-		error.code = error.INVALID_ARGUMENT_ERROR;
-		error.message = "successCallback has to be defined and a function";
-		throw error;
-	} else if (typeof errorCallback != "function"){
-		var error = new DeviceAPIError();
+	if (typeof errorCallback != "function"){
+		error = new DeviceAPIError();
 		error.code = error.INVALID_ARGUMENT_ERROR;
 		error.message = "errorCallback has to be defined and a function";
 		throw error;
-	} else if (typeof sms != "object"){
-		var error = new DeviceAPIError();
+	} else if (typeof successCallback != "function"){
+                error = new DeviceAPIError();
+		error.code = error.INVALID_ARGUMENT_ERROR;
+		error.message = "successCallback has to be defined and a function";
+		errorCallback(error);
+		return;
+	} else if (typeof sms != "object" || sms == null){
+		error = new DeviceAPIError();
 		error.code = error.INVALID_ARGUMENT_ERROR;
 		error.message = "sms has to be defined";
-		throw error;
+		errorCallback(error);
+		return;
 	}
-	if (typeof store != "undefined"){
+	if (store == true || store == false){
 		sms.store = store;
+	} else {
+		error = new DeviceAPIError();
+		error.code = error.INVALID_ARGUMENT_ERROR;
+		error.message = "store has to be boolean";
+		errorCallback(error);
+		return;
 	}
 	
 	var callbackData = {};
@@ -2621,10 +2975,11 @@ MessagingManager.prototype.sendSMS = function(successCallback, errorCallback, sm
 	
 	var message = validateSMS(sms);
 	if (message != ""){
-		var error = new DeviceAPIError();
+		error = new DeviceAPIError();
 		error.code = error.INVALID_ARGUMENT_ERROR;
 		error.message = "Error during validation of sms: " + message;
-		throw error;
+		errorCallback(error);
+		return;
 	}
 	
 	for (var i = 0; i < sms.to.length; i++){
@@ -2663,7 +3018,7 @@ MessagingManager.prototype.smsFailure = function(key, result){
 	var callbackData = this.callBacks[key];
 	
 	var error = {};
-	error.name = result;
+	error.code = result;
 	error.message = "failure sending sms, with body reading " + this.body;
 	
 	callbackData.failure(error);
@@ -2820,31 +3175,35 @@ MessagingManager.prototype.subscribeToSMSSynchron = function(listener, filter, e
  * @throws SecurityError, DeviceAPIError
  */
 MessagingManager.prototype.subscribeToSMS = function(successCallback, errorCallback, listener, filter, exclusive) {
-	if (typeof successCallback != "function"){
-		var error = new DeviceAPIError();
-		error.code = error.INVALID_ARGUMENT_ERROR;
-		error.message = "successCallback has to be defined and a function";
-		throw error;
-	} else if (typeof errorCallback != "function"){
+	if (typeof errorCallback != "function"){
 		var error = new DeviceAPIError();
 		error.code = error.INVALID_ARGUMENT_ERROR;
 		error.message = "errorCallback has to be defined and a function";
 		throw error;
+	} else if (typeof successCallback != "function"){
+		var error = new DeviceAPIError();
+		error.code = error.INVALID_ARGUMENT_ERROR;
+		error.message = "successCallback has to be defined and a function";
+		errorCallback(error);
+		return;
 	} else if (typeof listener != "function"){
 		var error = new DeviceAPIError();
 		error.code = error.INVALID_ARGUMENT_ERROR;
 		error.message = "listener has to be defined and a function";
-		throw error;
+		errorCallback(error);
+		return;
 	} else if (typeof filter != "object"){
 		var error = new DeviceAPIError();
 		error.code = error.INVALID_ARGUMENT_ERROR;
 		error.message = "filter must be an object";
-		throw error;
+		errorCallback(error);
+		return;
 	} else if (exclusive != true && exclusive != false){
 		var error = new DeviceAPIError();
 		error.code = error.INVALID_ARGUMENT_ERROR;
 		error.message = "exclusive must be a boolean";
-		throw error;
+		errorCallback(error);
+		return;
 	}
 
 	setTimeout(function() {
@@ -3196,7 +3555,7 @@ SMS.prototype.clearRecipients = function() {
 
 PhoneGap.addConstructor(function() {
     if (typeof bondi.messaging == "undefined") bondi.messaging = new MessagingManager();
-    if (typeof Bondi.messagingManager == "undefined") Bondi.messagingManager = bondi.messaging;
+    if (typeof bondi.messagingManager == "undefined") bondi.messagingManager = bondi.messaging;
 });
 
 //PhoneGap.addConstructor(function() {
@@ -3226,66 +3585,101 @@ function snippTheRecipients(sms, to){
 }
 
 function Bondi(){
-	
+
 }
 
-Bondi.prototype.requestFeature = function (successCallback, errorCallback, name){
-    var successful = false;
-	
-    // Including Messaging API
-	if ((name == "http://bondi.omtp.org/api/messaging.sms.send") ||
-    (name == "http://bondi.omtp.org/api/messaging.sms.subscribe") ||
-    (name == "http://bondi.omtp.org/api/messaging")){
-		if (typeof bondi.messaging == "undefined") bondi.messaging = new MessagingManager();
-		if (typeof Bondi.messagingManager == "undefined") Bondi.messagingManager = bondi.messaging;
-    	successCallback("feature " + name + " was successfully instantiated");
-    	successful = true;
-    } 
-	
-	// Including DeviceStatus API
-	if ( name == "http://bondi.omtp.org/api/devicestatus.get" ||
-		 name == "http://bondi.omtp.org/api/devicestatus.set" ||
-		 name == "http://bondi.omtp.org/api/devicestatus.list"){
-		
-		if (typeof bondi.devicestatus == "undefined") bondi.devicestatus = new DeviceStatusManager();
-		if (typeof Bondi.deviceStatusManager == "undefined") Bondi.deviceStatusManager = bondi.devicestatus;
-		successCallback("feature " + name + " was successfully instantiated");
-		successful = true;
-	}
-	
-	// Including GeoLocation API
-	if ( name == "http://bondi.omtp.org/api/geolocation.position"){
-		
-		if (typeof Bondi.geolocation == "undefined") Bondi.geolocation = new BondiGeolocation();
-		successCallback("feature " + name + " was successfully instantiated");
-		successful = true;
-	}
-	
-	// Including CameraManager API
-	if ( name == "http://bondi.omtp.org/api/camera.access" ||
-	     name == "http://bondi.omtp.org/api/camera.capture"){
-		
-		if (typeof bondi.camera == "undefined") bondi.camera = new BondiCamera();
-		if (typeof Bondi.cameraManager == "undefined") Bondi.cameraManager = bondi.camera;
-	    
-		successCallback("feature " + name + " was successfully instantiated");
-		successful = true;
-	}
-	
-	// Including FileIO API
-	if ( name == "http://bondi.omtp.org/api/filesystem.read" ||
-			name == "http://bondi.omtp.org/api/filesystem.write"){
-			
-		if (typeof bondi.filesystem == "undefined") bondi.filesystem = new FileSystemManager();
-		if (typeof Bondi.fileSystemManager  == "undefined") Bondi.fileSystemManager = bondi.filesystem;
+/**
+ * returns an array of the IRIs of all supported features
+ * @return stringarray with IRIs of all supported features
+ */
+Bondi.prototype.getFeatures = function() {
+	var features = [];
+	features.push("http://bondi.omtp.org/api/1.1/messaging.sms.send");
+	features.push("http://bondi.omtp.org/api/1.1/messaging.sms.subscribe");
+	features.push("http://bondi.omtp.org/api/1.1/devicestatus");
+	features.push("http://bondi.omtp.org/api/1.1/geolocation.position");
+//	features.push("http://bondi.omtp.org/api/1.1/geolocation");
+	features.push("http://bondi.omtp.org/api/1.1/camera.access");
+	features.push("http://bondi.omtp.org/api/1.1/camera.capture");
+//	features.push("http://bondi.omtp.org/api/1.1/filesystem");
+	features.push("http://bondi.omtp.org/api/1.1/filesystem.read");
+	features.push("http://bondi.omtp.org/api/1.1/filesystem.write");
+	return features;
+}
 
-		successCallback("feature " + name + " was successfully instantiated");
-		successful = true;
-	}
+/**
+ * Instantiates (and returns references to) implementationobjects from the bondi specification
+ */
+Bondi.prototype.requestFeature = function (successCallback, errorCallback, name){
+    
+	var po = new PendingOperation();
 	
-	if (!successful){
-    	errorCallback("feature " + name + " is not supported")
+    if (typeof errorCallback != 'function'){
+    	var error = new DeviceAPIError();
+		error.code = error.INVALID_ARGUMENT_ERROR;
+		error.message = "ErrorCallback has to be defined and a function.";
+    	throw error;
+    	return po;
+    } else if (typeof successCallback != 'function'){
+    	var error = new DeviceAPIError();
+		error.code = error.INVALID_ARGUMENT_ERROR;
+		error.message = "SuccessCallback has to be defined and a function.";
+    	errorCallback(error);
+    	return po;
+    } 
+
+    // Including Messaging API
+    if ((name == "http://bondi.omtp.org/api/1.1/messaging.sms.send") ||
+    		(name == "http://bondi.omtp.org/api/1.1/messaging.sms.subscribe") ){
+    	if (typeof bondi.messaging == "undefined") bondi.messaging = new MessagingManager();
+    	if (typeof bondi.messagingManager == "undefined") bondi.messagingManager = bondi.messaging;
+    	successCallback(bondi.messaging);
+    	return po;
+    } 
+
+    // Including DeviceStatus API
+
+    if ( name == "http://bondi.omtp.org/api/1.1/devicestatus" ){
+    	if (typeof bondi.devicestatus == "undefined") bondi.devicestatus = new DeviceStatusManager();
+    	if (typeof bondi.deviceStatusManager == "undefined") bondi.deviceStatusManager = bondi.devicestatus;
+    	successCallback(bondi.devicestatus);
+    	return po;
     }
+
+    // Including GeoLocation API
+    if ( name == "http://bondi.omtp.org/api/1.1/geolocation.position"){
+    	if (typeof bondi.geolocation == "undefined") bondi.geolocation = new BondiGeolocation();
+    	successCallback(bondi.geolocation);
+    	return po;
+    }
+
+    // Including CameraManager API
+    if ( name == "http://bondi.omtp.org/api/1.1/camera.access" ||
+    		name == "http://bondi.omtp.org/api/1.1/camera.capture"){
+    	if (typeof bondi.camera == "undefined") bondi.camera = new BondiCamera();
+    	if (typeof bondi.cameraManager == "undefined") bondi.cameraManager = bondi.camera;
+
+    	successCallback(bondi.camera);
+    	return po;
+    }
+
+    // Including FileIO API
+    if ( name == "http://bondi.omtp.org/api/1.1/filesystem.read" ||
+    		name == "http://bondi.omtp.org/api/1.1/filesystem.write"){
+    	alert("Found File");
+    	if (typeof bondi.filesystem == "undefined") bondi.filesystem = new FileSystemManager();
+    	if (typeof bondi.fileSystemManager  == "undefined") bondi.fileSystemManager = bondi.filesystem;
+
+    	successCallback(bondi.filesystem);
+    	return po;
+    }
+
+    // Feature not found -> error
+    var error = new DeviceAPIError();
+    error.code = error.NOT_FOUND_ERROR;
+    error.message = "feature was not found and is probably not supported";
+    errorCallback(error);
+    return po;
 }
 
 /**
@@ -3741,3 +4135,4 @@ function BinaryMessage() {
 }
 
 */
+

@@ -1066,7 +1066,7 @@ BondiGeolocation.prototype.success = function(key, lat, lng, alt, acc, altacc, h
 
 BondiGeolocation.prototype.fail = function(key, message)
 {
-	if (this.listeners[key] != null){
+	if ((typeof this.listeners[key] != 'undefined') && (this.listeners[key] != null)){
 		if ((typeof this.listeners[key].fail != 'undefined') && (this.listeners[key].fail != null)){
 			var error = new PositionError();
 			error.code = error.POSITION_UNAVAILABLE;
@@ -2305,6 +2305,13 @@ FileSystemManager.prototype.getDefaultLocation = function(specifier, minFreeSpac
 	if (typeof minFreeSpace == 'undefined')
 		minFreeSpace = 0;
 
+	if (typeof minFreeSpace != 'number') {
+		var error = new DeviceAPIError();
+		error.code = error.INVALID_ARGUMENT_ERROR;
+		error.message = "minFreeSpace must be a number";
+		throw error;
+	}
+	
 	if (minFreeSpace >= 0 && specifier in oc(this.legalLocations)) {
 		var defaultLocation = FileSystem.getDefaultLocation(specifier,minFreeSpace);
 		if (typeof defaultLocation == 'undefined') {
@@ -2368,10 +2375,9 @@ FileSystemManager.prototype.resolveSynchron = function(location) {
 	var returnvalue = eval("(" + returnstring + ")");
 
 	if (returnvalue["error"] != null) {
-		DeviceAPIError.prototype.IO_ERROR
 		var error = new DeviceAPIError();
-		error.code = error.IO_ERROR;
-		error.message = returnvalue["error"]
+		error.code = returnvalue["error"]; //error.IO_ERROR;
+		error.message = "location could not be read -> is no file or directory";
 		throw error;
 	} else {
 		var result = new BondiFile();
@@ -2415,8 +2421,14 @@ FileSystemManager.prototype.resolve = function(successCallback, errorCallback, l
 		errorCallback(error);
 		return;
 	}
-	if (typeof mode != "undefined") {
+	if (typeof mode == "undefined") {
 		mode = "r";
+	} else if (!(mode == 'r' || mode == 'rw' )){
+		error = new DeviceAPIError();
+		error.code = error.INVALID_ARGUMENT_ERROR;
+		error.message = "mode has to be 'r' or 'rw' if defined";
+		errorCallback(error);
+		return;
 	}
 	if (typeof location == "undefined" || location == null) {
 		error = new DeviceAPIError();
@@ -2446,6 +2458,13 @@ FileSystemManager.prototype.resolve = function(successCallback, errorCallback, l
  * @throws DeviceAPIError
  */
 FileSystemManager.prototype.registerEventListener = function(listener) {
+	
+	if (typeof listener != 'function'){
+		var error = new DeviceAPIError();
+		error.code = error.INVALID_ARGUMENT_ERROR;
+		error.message = "listener has to be defined and a function.";
+    	throw error;
+	}
 	this.eventListener.push(listener);
 }
 
@@ -2459,6 +2478,14 @@ FileSystemManager.prototype.registerEventListener = function(listener) {
  * @throws DeviceAPIError
  */
 FileSystemManager.prototype.unregisterEventListener = function(listener) {
+	
+	if (typeof listener != 'function'){
+		var error = new DeviceAPIError();
+		error.code = error.INVALID_ARGUMENT_ERROR;
+		error.message = "listener has to be defined and a function.";
+    	throw error;
+	}
+	
 	this.eventListener = this.eventListener.filter(
 			function(element,index,array) {
 				return (listener !== element);
@@ -2586,7 +2613,7 @@ BondiFile.prototype.open = function(mode, encoding) {
 	if (retval["error"] != null) {
 		FileSystem.log(this.name + ":" + mode + ":" + encoding + " =>" + retval["error"]);
 		var error = new DeviceAPIError();
-		error.code = error.IO_ERROR;
+		error.code = parseInt(retval["error"]);
 		error.message = retval["error"];
 		throw error;
 	}
@@ -2693,11 +2720,14 @@ BondiFile.prototype.moveTo = function(successCallback, errorCallback, filePath, 
  *             DeviceAPIError)
  */
 BondiFile.prototype.createDirectory = function(dirPath) {
+	var error;
 	var returnstring = FileSystem.createDirectory(this.absolutePath, dirPath);
 	var returnvalue = eval("(" + returnstring + ")");
 	if (returnvalue["error"] != null) {
-		// this should probably not a generic error
-		throw new GenericError(returnvalue["error"]);
+		error = new DeviceAPIError();
+		error.code = returnvalue["error"];
+		error.message = returnvalue["errorMessage"];
+		throw error;
 	} else {
 		var result = new BondiFile();
 		result.parent = this;
@@ -2733,8 +2763,17 @@ BondiFile.prototype.createFile = function(filePath){
 	var returnstring = FileSystem.createFile(this.absolutePath, filePath);
 	var returnvalue = eval("(" + returnstring + ")");
 	if (returnvalue["error"] != null) {
-		// this should probably not be a generic error
-		throw new GenericError(returnvalue["error"]);
+		if (returnvalue["error"] != 20000){
+			error = new DeviceAPIError();
+			error.code = returnvalue["error"];
+			error.message = returnvalue["errorMessage"];
+			throw error;
+		} else {
+			error = new SecurityError();
+			error.code = returnvalue["error"];
+			error.message = returnvalue["errorMessage"];
+			throw error;
+		}
 	} else {
 		var result = new BondiFile();
 		result.parent = this;

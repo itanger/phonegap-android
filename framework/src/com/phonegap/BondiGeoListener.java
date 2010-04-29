@@ -32,8 +32,6 @@ public class BondiGeoListener implements LocationListener{
 		mCtx = ctx;
 		mLocMan = (LocationManager) mCtx.getSystemService(Context.LOCATION_SERVICE);
 		
-		
-	
 		if (mLocMan.getProvider(LocationManager.GPS_PROVIDER) != null){
 			mLocMan.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1, 0, this);
 		}
