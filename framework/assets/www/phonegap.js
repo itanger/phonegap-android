@@ -236,6 +236,7 @@ function GenericError(code, message) {
 	this.message = message;
 }
 
+
 function DeviceAPIError() {
 }
 function DeviceAPIError(code, message) {
@@ -243,16 +244,25 @@ function DeviceAPIError(code, message) {
 	this.message = message;
 }
 
-DeviceAPIError.prototype.UNKNOWN_ERROR = 10000;
-DeviceAPIError.prototype.INVALID_ARGUMENT_ERROR = 10001;
-DeviceAPIError.prototype.NOT_FOUND_ERROR = 10002;
-DeviceAPIError.prototype.PENDING_OPERATION_ERROR = 10003;
-DeviceAPIError.prototype.IO_ERROR = 10004;
-DeviceAPIError.prototype.NOT_SUPPORTED_ERROR = 10005;
+DeviceAPIError.UNKNOWN_ERROR = 10000;
+DeviceAPIError.INVALID_ARGUMENT_ERROR = 10001;
+DeviceAPIError.NOT_FOUND_ERROR = 10002;
+DeviceAPIError.PENDING_OPERATION_ERROR = 10003;
+DeviceAPIError.IO_ERROR = 10004;
+DeviceAPIError.NOT_SUPPORTED_ERROR = 10005;
+
+DeviceAPIError.prototype.UNKNOWN_ERROR = DeviceAPIError.UNKNOWN_ERROR;
+DeviceAPIError.prototype.INVALID_ARGUMENT_ERROR = DeviceAPIError.INVALID_ARGUMENT_ERROR;
+DeviceAPIError.prototype.NOT_FOUND_ERROR = DeviceAPIError.NOT_FOUND_ERROR;
+DeviceAPIError.prototype.PENDING_OPERATION_ERROR = DeviceAPIError.PENDING_OPERATION_ERROR;
+DeviceAPIError.prototype.IO_ERROR = DeviceAPIError.IO_ERROR;
+DeviceAPIError.prototype.NOT_SUPPORTED_ERROR = DeviceAPIError.NOT_SUPPORTED_ERROR;
+
 
 function SecurityError() {
 }
-SecurityError.prototype.PERMISSION_DENIED_ERROR = 20000;
+SecurityError.PERMISSION_DENIED_ERROR = 20000;
+SecurityError.prototype.PERMISSION_DENIED_ERROR = SecurityError.PERMISSION_DENIED_ERROR;
 
 PendingOperation = function() {
 }
@@ -295,16 +305,19 @@ CameraManager.prototype.getCameras = function(successCallback, errorCallback) {
 function CameraError() {
 }
 /** Error thrown if the used camera is already in use. */
-CameraError.prototype.CAMERA_ALREADY_IN_USE_ERROR = 0;
+CameraError.CAMERA_ALREADY_IN_USE_ERROR = 0;
+CameraError.prototype.CAMERA_ALREADY_IN_USE_ERROR = CameraError.CAMERA_ALREADY_IN_USE_ERROR;
 
 /**
  * Error thrown if an unpredicted error occurs while a picture or video is being
  * captured or if endRecording is called while no video is currently captured.
  */
-CameraError.prototype.CAMERA_CAPTURE_ERROR = 1;
+CameraError.CAMERA_CAPTURE_ERROR = 1;
+CameraError.prototype.CAMERA_CAPTURE_ERROR = CameraError.CAMERA_CAPTURE_ERROR;
 
 /** Error thrown if a camera life video cannot be provided. */
-CameraError.prototype.CAMERA_LIVEVIEW_ERROR = 2;
+CameraError.CAMERA_LIVEVIEW_ERROR = 2;
+CameraError.prototype.CAMERA_LIVEVIEW_ERROR = CameraError.CAMERA_LIVEVIEW_ERROR;
 
 
 
@@ -377,24 +390,42 @@ function BondiCamera(id) {
 }
 //XXX add constants to phoneGap camera object instead of BondiCamera
 //even though they aren't of much use right now anyway
-BondiCamera.prototype.ZOOM = 0;
-BondiCamera.prototype.ZOOM_NOZOOM = 1;
-BondiCamera.prototype.CONTRAST = 2;
-BondiCamera.prototype.BRIGHTNESS = 3;
-BondiCamera.prototype.COLORTEMPERATURE = 4;
-BondiCamera.prototype.NIGHTMODE = 5;
-BondiCamera.prototype.NIGHTMODE_OFF = 0;
-BondiCamera.prototype.NIGHTMODE_ON = 1;
-BondiCamera.prototype.MANUALFOCUS = 6;
-BondiCamera.prototype.MANUALFOCUS_ON = 1;
-BondiCamera.prototype.MANUALFOCUS_OFF = 0;
-BondiCamera.prototype.FOCUS = 7;
-BondiCamera.prototype.LIGHT = 8;
-BondiCamera.prototype.FLASH = 9;
-BondiCamera.prototype.FLASH_NO_FLASH = 0;
-BondiCamera.prototype.FLASH_AUTOFLASH = 1;
-BondiCamera.prototype.FLASH_FORCEDFLASH = 2;
-BondiCamera.prototype.description = 'androidcam';
+BondiCamera.ZOOM = 0;
+BondiCamera.prototype.ZOOM = BondiCamera.ZOOM;
+BondiCamera.ZOOM_NOZOOM = 1;
+BondiCamera.prototype.ZOOM_NOZOOM = BondiCamera.ZOOM_NOZOOM;
+BondiCamera.CONTRAST = 2;
+BondiCamera.prototype.CONTRAST = BondiCamera.CONTRAST;
+BondiCamera.BRIGHTNESS = 3;
+BondiCamera.prototype.BRIGHTNESS = BondiCamera.BRIGHTNESS;
+BondiCamera.COLORTEMPERATURE = 4;
+BondiCamera.prototype.COLORTEMPERATURE = BondiCamera.COLORTEMPERATURE;
+BondiCamera.NIGHTMODE = 5;
+BondiCamera.prototype.NIGHTMODE = BondiCamera.NIGHTMODE;
+BondiCamera.NIGHTMODE_OFF = 0;
+BondiCamera.prototype.NIGHTMODE_OFF = BondiCamera.NIGHTMODE_OFF;
+BondiCamera.NIGHTMODE_ON = 1;
+BondiCamera.prototype.NIGHTMODE_ON = BondiCamera.NIGHTMODE_ON;
+BondiCamera.MANUALFOCUS = 6;
+BondiCamera.prototype.MANUALFOCUS = BondiCamera.MANUALFOCUS;
+BondiCamera.MANUALFOCUS_ON = 1;
+BondiCamera.prototype.MANUALFOCUS_ON = BondiCamera.MANUALFOCUS_ON;
+BondiCamera.MANUALFOCUS_OFF = 0;
+BondiCamera.prototype.MANUALFOCUS_OFF = BondiCamera.MANUALFOCUS_OFF;
+BondiCamera.FOCUS = 7;
+BondiCamera.prototype.FOCUS = BondiCamera.FOCUS;
+BondiCamera.LIGHT = 8;
+BondiCamera.prototype.LIGHT = BondiCamera.LIGHT;
+BondiCamera.FLASH = 9;
+BondiCamera.prototype.FLASH = BondiCamera.FLASH;
+BondiCamera.FLASH_NO_FLASH = 0;
+BondiCamera.prototype.FLASH_NO_FLASH = BondiCamera.FLASH_NO_FLASH;
+BondiCamera.FLASH_AUTOFLASH = 1;
+BondiCamera.prototype.FLASH_AUTOFLASH = BondiCamera.FLASH_AUTOFLASH;
+BondiCamera.FLASH_FORCEDFLASH = 2;
+BondiCamera.prototype.FLASH_FORCEDFLASH = BondiCamera.FLASH_FORCEDFLASH;
+BondiCamera.description = 'androidcam';
+BondiCamera.prototype.description = BondiCamera.description;
 
 
 /**
@@ -2440,7 +2471,7 @@ FileSystemManager.prototype.resolve = function(successCallback, errorCallback, l
 	setTimeout(function() {
 		try {
 			var mydoc = bondi.filesystem.resolveSynchron(location);
-			if (mode == "r") {
+			if (mode == "r" && !mydoc.isDirectory) {
 				mydoc.readOnly = true;
 			}
 			successCallback(mydoc);
@@ -2931,8 +2962,12 @@ FileStream.prototype.close = function(){
 FileStream.prototype.read = function(charCount) {
 	var ret =  FileSystem.read(this.int_id, this.int_position, charCount);
 	var returnvalue = eval('(' + ret + ')');
-	if (returnvalue["error"] != null)
-		throw new DeviceAPIError(returnvalue["error"]);
+	if (returnvalue["error"] != null){
+		var error = new DeviceAPIError();
+		error.code = returnvalue["error"];
+		error.message = returnvalue["errorMessage"];
+		throw error;
+	}
 	this.position = returnvalue["new_pos"];
 	return returnvalue["data"];
 }
@@ -3064,13 +3099,16 @@ function MessagingError() {
 }
 // There is no coverage
 MessagingError.OUT_OF_COVERAGE_ERROR = 1;
+MessagingError.prototype.OUT_OF_COVERAGE_ERROR = MessagingError.OUT_OF_COVERAGE_ERROR;
 
 // Media addition is not possible, since the slide already includes a media file
 // that cannot coexist with the others.
 MessagingError.MMS_VIDEO_SLIDE_ERROR = 2;
+MessagingError.prototype.MMS_VIDEO_SLIDE_ERROR = MessagingError.MMS_VIDEO_SLIDE_ERROR;
 
 // Message size would be exceeded by the given operation.
 MessagingError.MMS_MESSAGE_SIZE_EXCEEDED_ERROR = 3;
+MessagingError.prototype.MMS_MESSAGE_SIZE_EXCEEDED_ERROR = MessagingError.MMS_MESSAGE_SIZE_EXCEEDED_ERROR;
 
 function cancel(){
 	// alert("We're sorry, but this feature is not supported");
@@ -3816,14 +3854,16 @@ function Bondi(){
  */
 Bondi.prototype.getFeatures = function() {
 	var features = [];
+	features.push("http://bondi.omtp.org/api/1.1/messaging");
 	features.push("http://bondi.omtp.org/api/1.1/messaging.sms.send");
 	features.push("http://bondi.omtp.org/api/1.1/messaging.sms.subscribe");
 	features.push("http://bondi.omtp.org/api/1.1/devicestatus");
 	features.push("http://bondi.omtp.org/api/1.1/geolocation.position");
-//	features.push("http://bondi.omtp.org/api/1.1/geolocation");
+	features.push("http://bondi.omtp.org/api/1.1/geolocation");
+	features.push("http://bondi.omtp.org/api/1.1/camera");
 	features.push("http://bondi.omtp.org/api/1.1/camera.access");
 	features.push("http://bondi.omtp.org/api/1.1/camera.capture");
-//	features.push("http://bondi.omtp.org/api/1.1/filesystem");
+	features.push("http://bondi.omtp.org/api/1.1/filesystem");
 	features.push("http://bondi.omtp.org/api/1.1/filesystem.read");
 	features.push("http://bondi.omtp.org/api/1.1/filesystem.write");
 	return features;
@@ -3888,7 +3928,6 @@ Bondi.prototype.requestFeature = function (successCallback, errorCallback, name)
     // Including FileIO API
     if ( name == "http://bondi.omtp.org/api/1.1/filesystem.read" ||
     		name == "http://bondi.omtp.org/api/1.1/filesystem.write"){
-    	alert("Found File");
     	if (typeof bondi.filesystem == "undefined") bondi.filesystem = new FileSystemManager();
     	if (typeof bondi.fileSystemManager  == "undefined") bondi.fileSystemManager = bondi.filesystem;
 
@@ -5088,9 +5127,14 @@ function MediaError() {
 }
 
 MediaError.MEDIA_ERR_ABORTED 		= 1;
+MediaError.prototype.MEDIA_ERR_ABORTED 		= MediaError.MEDIA_ERR_ABORTED;
 MediaError.MEDIA_ERR_NETWORK 		= 2;
+MediaError.prototype.MEDIA_ERR_NETWORK 		= MediaError.MEDIA_ERR_NETWORK;
 MediaError.MEDIA_ERR_DECODE 		= 3;
+MediaError.prototype.MEDIA_ERR_DECODE 		= MediaError.MEDIA_ERR_DECODE;
 MediaError.MEDIA_ERR_NONE_SUPPORTED = 4;
+MediaError.prototype.MEDIA_ERR_NONE_SUPPORTED = MediaError.MEDIA_ERR_NONE_SUPPORTED;
+
 
 
 //if (typeof navigator.audio == "undefined") navigator.audio = new Media(src);
@@ -5339,10 +5383,15 @@ function PositionError() {
 	this.message = "";
 }
 
-PositionError.prototype.UNKNOWN_ERROR = 0;
-PositionError.prototype.PERMISSION_DENIED = 1;
-PositionError.prototype.POSITION_UNAVAILABLE = 2;
-PositionError.prototype.TIMEOUT = 3;
+PositionError.UNKNOWN_ERROR = 0;
+PositionError.prototype.UNKNOWN_ERROR = PositionError.UNKNOWN_ERROR;
+PositionError.PERMISSION_DENIED = 1;
+PositionError.prototype.PERMISSION_DENIED = PositionError.PERMISSION_DENIED;
+PositionError.POSITION_UNAVAILABLE = 2;
+PositionError.prototype.POSITION_UNAVAILABLE = PositionError.POSITION_UNAVAILABLE;
+PositionError.TIMEOUT = 3;
+PositionError.prototype.TIMEOUT = PositionError.TIMEOUT;
+
 
 
 /*

@@ -215,12 +215,23 @@ public class FileSystem {
 		} else {
 			target = locationsUnmounted.get(location);
 		}
-		if (target == null || size == 0)
-			return target;
-		StatFs stat = new StatFs(target);
-		long free = stat.getAvailableBlocks() * stat.getBlockSize();
-		if (free < size) {
-			return null;
+		if (target != null && size > 0) {
+			StatFs stat = new StatFs(target);
+			long free = stat.getAvailableBlocks() * stat.getBlockSize();
+			if (free < size) {
+				return null;
+			}
+		}
+		
+		// create location if location does not exist
+		try {
+			File targetFile = new File(target);
+			if (!targetFile.exists()) {
+				targetFile.mkdirs();
+			}
+		} catch (Exception e) {
+			//Log.w("FileSystem", e.getMessage());
+			e.printStackTrace();
 		}
 		return target;
 	}
@@ -249,15 +260,22 @@ public class FileSystem {
 		File temp = new File(location);
 		boolean canRead = false;
 		try {
-			canRead = temp.canRead() || temp.isDirectory();
-			//canRead = true;
-		} catch (SecurityException se) {
+			if (!temp.isDirectory()) {
+				canRead = temp.canRead();
+			} else {
+ 				canRead = true;
+			}
+		} catch (Exception se) {
 			canRead = false;
 		}
 		if (!canRead) {
 			return IO_ERROR;
 		} else {
-			result.put("readonly", Boolean.valueOf(!temp.canWrite()));
+			if (temp.isDirectory()) {
+				result.put("readonly", Boolean.valueOf(false));
+			} else {
+				result.put("readonly", Boolean.valueOf(!temp.canWrite()));
+			}
 			result.put("name", temp.getName() + "");
 			result.put("path", temp.getParentFile().getAbsolutePath() + "");
 			result.put("absolutepath", temp.getAbsolutePath() + "");
@@ -511,11 +529,13 @@ public class FileSystem {
 	public String read(String id, long position, long charCount) {
 		FileStreamData fsd = openFiles.get(Integer.valueOf(id));
 		if (fsd == null) {
-			return IO_ERROR;
+			return getIO_Error("invalid fileID, could not find file");
+//			return IO_ERROR;
 		}
 		RandomAccessFile target = fsd.target;
 		if (target == null) {
-			return IO_ERROR;
+			return getIO_Error("invalid fileAccess");
+//			return IO_ERROR;
 		}
 		try {
 			if (charCount == 0)
@@ -544,7 +564,8 @@ public class FileSystem {
 						continue;
 					}
 					Log.w("FileSystem", "Invalid unicode Char!");
-					return IO_ERROR;
+					return getIO_Error("Invalid unicode Char!");
+//					return IO_ERROR;
 				}
 
 				long newpos = target.getFilePointer();
@@ -569,7 +590,8 @@ public class FileSystem {
 					.valueOf(target.getFilePointer()) : Long.valueOf(position));
 			return new JSONObject(data).toString();
 		} catch (IOException io) {
-			return IO_ERROR;
+			return getIO_Error(io.getMessage());
+//			return IO_ERROR;
 		}
 	}
 
@@ -623,7 +645,7 @@ public class FileSystem {
 			target.seek(position);
 			target.readFully(bytes);
 			Map<String, Object> data = new HashMap<String, Object>();
-			byte[] base64 = Base64.encodeBase64(bytes);
+			byte[] base64 = Base64.decodeBase64(bytes);
 			data.put("data", new String(base64, "ISO8859-1"));
 			data.put("new_pos", IO_OPERATIONS_MODIFY_POSITION ? Long
 					.valueOf(target.getFilePointer()) : Long.valueOf(position));
@@ -732,7 +754,7 @@ public class FileSystem {
 			if (!Base64.isArrayByteBase64(base64))
 				return IO_ERROR;
 
-			target.write(Base64.decodeBase64(base64));
+			target.write(Base64.encodeBase64(base64));
 			Map<String, Object> data = new HashMap<String, Object>();
 			data.put("new_pos", IO_OPERATIONS_MODIFY_POSITION ? Long
 					.valueOf(target.getFilePointer()) : Long.valueOf(position));
@@ -781,36 +803,40 @@ public class FileSystem {
 
 		boolean recursiveDelete = Boolean.parseBoolean(recursive);
 		try {
+			File testFile = new File(dir);
+			if (!testFile.isDirectory()) {
+				return getIO_Error("Method deleteDirectoy expected " + dir + " to be a directory.");
+//				return IO_ERROR;
+			}
+			
 			if (recursiveDelete) {
 				LinkedList<File> toDelete = new LinkedList<File>();
 				toDelete.add(new File(dir));
 				while (!toDelete.isEmpty()) {
-					File f = toDelete.peek();
-					File[] contents = f.listFiles();
+					File filePeek = toDelete.peek();
+					File[] contents = filePeek.listFiles();
 					if (contents != null) {
 						for (File target : contents) {
 							if (target.isDirectory()) {
 								toDelete.add(0, target);
 							} else {
 								if (!target.delete()) {
-									return IO_ERROR;
+									return getIO_Error("Directory " + dir + " could not be deleted");
+//									return IO_ERROR;
 								}
 							}
 						}
 					}
 
-					if (toDelete.peek() == f) {
+					if (toDelete.peek() == filePeek) {
 						toDelete.poll();
-						if (!f.delete()) {
+						if (!filePeek.delete()) {
 							return IO_ERROR;
 						}
 					}
 				}
 			} else {
 				File f = new File(dir);
-				if (!f.isDirectory()) {
-					return IO_ERROR;
-				}
 				if (!f.delete())
 					return IO_ERROR;
 			}

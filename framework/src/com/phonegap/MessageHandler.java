@@ -120,6 +120,10 @@ public class MessageHandler {
 		ownNumber = mTelephonyMgr.getLine1Number();
 	}
 
+	public String getOwnNumber(){
+		return ownNumber;
+	}
+	
 	/**
 	 * method for sending sms
 	 * 

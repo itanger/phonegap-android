@@ -11,13 +11,12 @@ import android.util.Log;
 import android.webkit.WebView;
 
 public class BondiGeoListener implements LocationListener{
-	String id;
-	String successCallback;
-	String failCallback;
-    LocationManager mLocMan;
-    Context mCtx;
+	private String id;
+    private LocationManager mLocMan;
+    private Context mCtx;
+    private boolean debugmode = false; 
 	
-	int interval;
+	private int interval;
 	
 	private WebView mAppView;
 	private static final String LOG_TAG = "BondiGeoListener";
@@ -31,13 +30,20 @@ public class BondiGeoListener implements LocationListener{
 		interval = time;
 		mCtx = ctx;
 		mLocMan = (LocationManager) mCtx.getSystemService(Context.LOCATION_SERVICE);
+
 		
-		if (mLocMan.getProvider(LocationManager.GPS_PROVIDER) != null){
-			mLocMan.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1, 0, this);
+		List<String> providers = mLocMan.getAllProviders();
+		
+		for (String provName : providers){
+			mLocMan.requestLocationUpdates(provName, interval, 0, this);
 		}
-		if (mLocMan.getProvider(LocationManager.NETWORK_PROVIDER) != null){
-			mLocMan.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1, 0, this);
-		}
+		
+//		if (mLocMan.getProvider(LocationManager.GPS_PROVIDER) != null){
+//			mLocMan.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1, 0, this);
+//		}
+//		if (mLocMan.getProvider(LocationManager.NETWORK_PROVIDER) != null){
+//			mLocMan.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1, 0, this);
+//		}
 		
 		
 		//After creation now let's make a first location-check, to get warm
@@ -93,13 +99,15 @@ public class BondiGeoListener implements LocationListener{
 	public void onProviderDisabled(String provider) {
 		Log.d(LOG_TAG, "The provider " + provider + " is disabled");
 		String message = "The provider " + provider + " is disabled";
-		mAppView.loadUrl("javascript:bondi.geolocation.alertMessage('"+message+"')");
+		if (debugmode)
+			mAppView.loadUrl("javascript:bondi.geolocation.alertMessage('"+message+"')");
 	}
 
 	public void onProviderEnabled(String provider) {
 		Log.d(LOG_TAG, "The provider "+ provider + " is enabled");
 		String message = "The provider " + provider + " is enabled";
-		mAppView.loadUrl("javascript:bondi.geolocation.alertMessage('"+message+"')");
+		if (debugmode)
+			mAppView.loadUrl("javascript:bondi.geolocation.alertMessage('"+message+"')");
 	}
 
 
@@ -112,19 +120,22 @@ public class BondiGeoListener implements LocationListener{
 		{
 			Log.d(LOG_TAG, provider + " is OUT OF SERVICE");
 			message+= provider + " is OUT OF SERVICE";
-			mAppView.loadUrl("javascript:bondi.geolocation.alertMessage('"+message+"')");
+			if (debugmode)
+				mAppView.loadUrl("javascript:bondi.geolocation.alertMessage('"+message+"')");
 		}
 		else if(status == 1)
 		{
 			Log.d(LOG_TAG, provider + " is TEMPORARILY_UNAVAILABLE");
 			message+= provider + " is TEMPORARILY_UNAVAILABLE";
-			mAppView.loadUrl("javascript:bondi.geolocation.alertMessage('"+message+"')");
+			if (debugmode)
+				mAppView.loadUrl("javascript:bondi.geolocation.alertMessage('"+message+"')");
 		}
 		else
 		{
 			Log.d(LOG_TAG, provider + " is Available");
 			message+= provider + " is Available";
-			mAppView.loadUrl("javascript:bondi.geolocation.alertMessage('"+message+"')");
+			if (debugmode)
+				mAppView.loadUrl("javascript:bondi.geolocation.alertMessage('"+message+"')");
 		}
 	}
 

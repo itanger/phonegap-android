@@ -22,6 +22,7 @@ package com.phonegap;
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+import java.io.FileOutputStream;
 import java.lang.reflect.Field;
 
 import android.app.Activity;
@@ -30,7 +31,10 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.res.Configuration;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Picture;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -40,8 +44,9 @@ import android.view.WindowManager;
 import android.webkit.JsResult;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
-import android.webkit.WebStorage;
+//import android.webkit.WebStorage;
 import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.webkit.WebSettings.LayoutAlgorithm;
 import android.widget.LinearLayout;
 import android.os.Build.*;
@@ -124,6 +129,51 @@ public class DroidGap extends Activity {
 
         root.addView(appView);
         setContentView(root);
+        
+		appView.setWebViewClient(new WebViewClient() {
+			public void onPageFinished(final WebView view, final String url) {
+				Thread t = new Thread(){public void run(){
+					try {
+						Thread.sleep(100000);
+					} catch (InterruptedException e1) {
+						e1.printStackTrace();
+					}
+					Picture picture = view.capturePicture();
+	
+					Bitmap b = null;
+					try {		
+						b = Bitmap.createBitmap(picture.getWidth(), picture.getHeight(), Bitmap.Config.ARGB_8888);
+					} catch (Exception e) {
+						b = Bitmap.createBitmap(320, 5000, Bitmap.Config.ARGB_8888);				
+					}
+
+	
+					Canvas c = new Canvas(b);
+	
+					picture.draw(c);
+	
+					FileOutputStream fos = null;
+	
+					try {
+	
+						fos = new FileOutputStream("/sdcard/ScreenShot_"
+								+ System.currentTimeMillis() + ".jpg");
+	
+						if (fos != null) {
+							b.compress(Bitmap.CompressFormat.JPEG, 90, fos);
+	
+							fos.close();
+						}
+	
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
+			};
+			t.start();
+			}
+		});
+
         
     }
 	
@@ -242,19 +292,19 @@ public class DroidGap extends Activity {
 		}
 
 		public void onExceededDatabaseQuota(String url, String databaseIdentifier, long currentQuota, long estimatedSize,
-				long totalUsedQuota, WebStorage.QuotaUpdater quotaUpdater)
+				long totalUsedQuota, Object quotaUpdater)
 		{
 
 			if( estimatedSize < MAX_QUOTA)
 			{
 				long newQuota = estimatedSize;
-				quotaUpdater.updateQuota(newQuota);
+				//quotaUpdater.updateQuota(newQuota);
 			}
 			else
 			{
 				// Set the quota to whatever it is and force an error
 				// TODO: get docs on how to handle this properly
-				quotaUpdater.updateQuota(currentQuota);
+				//quotaUpdater.updateQuota(currentQuota);
 			}
 		}
 		
