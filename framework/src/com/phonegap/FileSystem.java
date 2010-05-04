@@ -321,6 +321,8 @@ public class FileSystem {
 			result.put("isfile", Boolean.valueOf(temp.isFile()));
 			result.put("isdirectory", Boolean.valueOf(temp.isDirectory()));
 			result.put("parent", temp.getParent());
+		} else {
+			result.put("error", Short.valueOf((short) 10004));
 		}
 		String rslt = new JSONObject(result).toString();
 		// Log.w("FileSystem", rslt == null ? "null!" : rslt);
