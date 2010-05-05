@@ -672,9 +672,10 @@ BondiGeolocation.prototype.getCurrentPosition = function(successCallback, errorC
 		error = new DeviceAPIError();
 		error.code = error.INVALID_ARGUMENT_ERROR;
 		error.message = "SuccessCallback must be defined, a function and not be null";
-		if (errorCbIsDefined) {
-			errorCallback(error);
-		}
+		throw error;
+//		if (errorCbIsDefined) {
+//			errorCallback(error);
+//		}
 		return;
 	} 
 	// time in milliseconds that the gps-system might potentially rest between
@@ -694,9 +695,10 @@ BondiGeolocation.prototype.getCurrentPosition = function(successCallback, errorC
 				error = new DeviceAPIError();
 				error.code = error.INVALID_ARGUMENT_ERROR;
 				error.message = "maximumAge must be higher than -1";
-				if (errorCbIsDefined) {
-					errorCallback(error);
-				}
+				throw error;
+//				if (errorCbIsDefined) {
+//					errorCallback(error);
+//				}
 				return;
 			} else if (options.maximumAge != 0){
 				isValid = true;
@@ -710,9 +712,10 @@ BondiGeolocation.prototype.getCurrentPosition = function(successCallback, errorC
 						return;
 					} else {
 						// location is an positionError instead
-						if (errorCbIsDefined) {
-							errorCallback(location);
-						}
+						throw error;
+//						if (errorCbIsDefined) {
+//							errorCallback(location);
+//						}
 					}
 				} else {
 					maximumAge = options.maximumAge;
@@ -729,9 +732,10 @@ BondiGeolocation.prototype.getCurrentPosition = function(successCallback, errorC
 				error = new DeviceAPIError();
 				error.code = error.INVALID_ARGUMENT_ERROR;
 				error.message = "Timeout can't be a point in time before the present, so it has to be > -1";
-				if (errorCbIsDefined) {
-					errorCallback(error);
-				}
+				throw error;
+//				if (errorCbIsDefined) {
+//					errorCallback(error);
+//				}
 				return;
 			} else {
 				isValid = true;
@@ -748,9 +752,10 @@ BondiGeolocation.prototype.getCurrentPosition = function(successCallback, errorC
 			error = new DeviceAPIError();
 			error.code = error.INVALID_ARGUMENT_ERROR;
 			error.message = "if options are defined they have to include at least one valid option";
-			if (errorCbIsDefined) {
-				errorCallback(error);
-			} 
+			throw error;
+//			if (errorCbIsDefined) {
+//				errorCallback(error);
+//			} 
 			return;
 		} 
 	}
@@ -935,9 +940,10 @@ BondiGeolocation.prototype.watchPosition = function(successCallback, errorCallba
 		error = new DeviceAPIError();
 		error.code = error.INVALID_ARGUMENT_ERROR;
 		error.message = "SuccessCallback must be defined, a function and not be null";
-		if (errorCbIsDefined) {
-			errorCallback(error);
-		}
+		throw error;
+//		if (errorCbIsDefined) {
+//			errorCallback(error);
+//		}
 		return;
 	} 
 	
@@ -952,9 +958,10 @@ BondiGeolocation.prototype.watchPosition = function(successCallback, errorCallba
 				error = new DeviceAPIError();
 				error.code = error.INVALID_ARGUMENT_ERROR;
 				error.message = "timeout must not be < -1";
-				if (errorCbIsDefined) {
-					errorCallback(error);
-				}
+				throw error;
+//				if (errorCbIsDefined) {
+//					errorCallback(error);
+//				}
 				return;
 			}
 		}
@@ -966,9 +973,10 @@ BondiGeolocation.prototype.watchPosition = function(successCallback, errorCallba
 				error = new DeviceAPIError();
 				error.code = error.INVALID_ARGUMENT_ERROR;
 				error.message = "maximumAge has to be > -1";
-				if (errorCbIsDefined) {
-					errorCallback(error);
-				}
+				throw error;
+//				if (errorCbIsDefined) {
+//					errorCallback(error);
+//				}
 				return;
 			}
 		}
@@ -982,9 +990,10 @@ BondiGeolocation.prototype.watchPosition = function(successCallback, errorCallba
 			error = new DeviceAPIError();
 			error.code = error.INVALID_ARGUMENT_ERROR;
 			error.message = "if options are defined they have to include at least one valid option";
-			if (errorCbIsDefined) {
-				errorCallback(error);
-			} 
+			throw error;
+//			if (errorCbIsDefined) {
+//				errorCallback(error);
+//			} 
 			return;
 		} 
 	} // END ArgumentChecking and errorHandling
