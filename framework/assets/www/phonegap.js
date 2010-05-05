@@ -375,7 +375,12 @@ BondiCameraManager.prototype.getCameras = function(successCallback, errorCallbac
 		var error = new DeviceAPIError();
 		error.code = error.INVALID_ARGUMENT_ERROR;
 		error.message = "successCallback has to be defined and a function";
-		throw error;
+		if (typeof errorCallback == "function"){
+			errorCallback(error);
+			return;
+		} else {
+			throw error;
+		}
 	}
 	return new PendingOperation();
 }
@@ -443,15 +448,16 @@ BondiCamera.prototype.description = BondiCamera.description;
  */
 BondiCamera.prototype.takePicture = function(successCallback, errorCallback, options) {
 		var error;
-		if (typeof successCallback != "function"){
-			error = new DeviceAPIError();
-			error.code = error.INVALID_ARGUMENT_ERROR;
-			error.message = "successCallback has to be defined and a function";
-			throw error;
-		} else if (typeof errorCallback != "function"){
+		if (typeof errorCallback != "function"){
 			error = new DeviceAPIError();
 			error.code = error.INVALID_ARGUMENT_ERROR;
 			error.message = "errorCallback has to be defined and a function";
+			throw error;
+		} else if (typeof successCallback != "function"){
+			error = new DeviceAPIError();
+			error.code = error.INVALID_ARGUMENT_ERROR;
+			error.message = "successCallback has to be defined and a function";
+			errorCallback(error);
 			throw error;
 		}
 
@@ -473,12 +479,14 @@ BondiCamera.prototype.takePicture = function(successCallback, errorCallback, opt
 			error = new CameraError();
 			error.code = error.CAMERA_ALREADY_IN_USE_ERROR;
 			error.message = "camera is already in use please try again later";
-			throw error;
+			errorCallback(error);
+			//throw error;
 		} else if (camStatus == "Permission Denied"){
 			error = new SecurityError ()
 			error.code = error.PERMISSION_DENIED_ERROR;
 			error.message = "Permission to take picture was denied";
-			throw error;
+			errorCallback(error);
+			//throw error;
 		}
 		
 		// only other case: camStatus == "unoccupied"
@@ -1036,8 +1044,8 @@ BondiGeolocation.prototype.watchPosition = function(successCallback, errorCallba
 	}
 }
 
-BondiGeolocation.prototype.alertMessage = function (message){
-	alert("geoLocLog: " + message);
+Bondi.prototype.alertMessage = function (from, message){
+	alert(from + ": " + message);
 }
 
 /*
@@ -2469,16 +2477,18 @@ FileSystemManager.prototype.resolve = function(successCallback, errorCallback, l
 		return;
 	}
 	setTimeout(function() {
+		var mydoc;
 		try {
-			var mydoc = bondi.filesystem.resolveSynchron(location);
+			mydoc = bondi.filesystem.resolveSynchron(location);
 			if (mode == "r" && !mydoc.isDirectory) {
 				mydoc.readOnly = true;
 			}
-			successCallback(mydoc);
 		} catch (e)	{
 			e.code = e.INVALID_ARGUMENT_ERROR;
 			errorCallback(e);
+			return;
 		}
+		successCallback(mydoc);
 	}, 1);
 
 	return new PendingOperation();
@@ -3870,7 +3880,7 @@ Bondi.prototype.getFeatures = function() {
 }
 
 /**
- * Instantiates (and returns references to) implementationobjects from the bondi specification
+ * Instantiates (and returns references to) implementation objects from the bondi specification
  */
 Bondi.prototype.requestFeature = function (successCallback, errorCallback, name){
     
@@ -3892,7 +3902,8 @@ Bondi.prototype.requestFeature = function (successCallback, errorCallback, name)
 
     // Including Messaging API
     if ((name == "http://bondi.omtp.org/api/1.1/messaging.sms.send") ||
-    		(name == "http://bondi.omtp.org/api/1.1/messaging.sms.subscribe") ){
+    		(name == "http://bondi.omtp.org/api/1.1/messaging.sms.subscribe") ||
+    		(name == "http://bondi.omtp.org/api/1.1/messaging")){
     	if (typeof bondi.messaging == "undefined") bondi.messaging = new MessagingManager();
     	if (typeof bondi.messagingManager == "undefined") bondi.messagingManager = bondi.messaging;
     	successCallback(bondi.messaging);
@@ -3909,7 +3920,8 @@ Bondi.prototype.requestFeature = function (successCallback, errorCallback, name)
     }
 
     // Including GeoLocation API
-    if ( name == "http://bondi.omtp.org/api/1.1/geolocation.position"){
+    if (( name == "http://bondi.omtp.org/api/1.1/geolocation.position") ||
+    (name == "http://bondi.omtp.org/api/1.1/geolocation")){
     	if (typeof bondi.geolocation == "undefined") bondi.geolocation = new BondiGeolocation();
     	successCallback(bondi.geolocation);
     	return po;
@@ -3917,7 +3929,8 @@ Bondi.prototype.requestFeature = function (successCallback, errorCallback, name)
 
     // Including CameraManager API
     if ( name == "http://bondi.omtp.org/api/1.1/camera.access" ||
-    		name == "http://bondi.omtp.org/api/1.1/camera.capture"){
+    		name == "http://bondi.omtp.org/api/1.1/camera.capture" ||
+    		name == "http://bondi.omtp.org/api/1.1/camera"){
     	if (typeof bondi.camera == "undefined") bondi.camera = new BondiCamera();
     	if (typeof bondi.cameraManager == "undefined") bondi.cameraManager = bondi.camera;
 
@@ -3927,7 +3940,8 @@ Bondi.prototype.requestFeature = function (successCallback, errorCallback, name)
 
     // Including FileIO API
     if ( name == "http://bondi.omtp.org/api/1.1/filesystem.read" ||
-    		name == "http://bondi.omtp.org/api/1.1/filesystem.write"){
+    		name == "http://bondi.omtp.org/api/1.1/filesystem.write" ||
+    		name == "http://bondi.omtp.org/api/1.1/filesystem"){
     	if (typeof bondi.filesystem == "undefined") bondi.filesystem = new FileSystemManager();
     	if (typeof bondi.fileSystemManager  == "undefined") bondi.fileSystemManager = bondi.filesystem;
 
