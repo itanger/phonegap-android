@@ -269,7 +269,8 @@ public class FileSystem {
 			canRead = false;
 		}
 		if (!canRead) {
-			return IO_ERROR;
+			return getIO_Error("Could not read location " + location + " possibly this location does not exist");
+//			return IO_ERROR;
 		} else {
 			if (temp.isDirectory()) {
 				result.put("readonly", Boolean.valueOf(false));
@@ -332,13 +333,15 @@ public class FileSystem {
 	public String listFiles(String location) {
 		try {
 			if (!new File(location).isDirectory()) {
-				return IO_ERROR;
+				return getIO_Error("Location " + location + " is no directory");
+//				return IO_ERROR;
 			}
 			Map<String, Object> result = new HashMap<String, Object>();
 			result.put("files", new JSONArray(Arrays.asList(new File(location).list())));
 			return new JSONObject(result).toString();
 		} catch (SecurityException e) {
-			return PERMISSION_DENIED_ERROR;
+			return getSecurityError(e.getMessage());
+//			return PERMISSION_DENIED_ERROR;
 		}
 	}
 
@@ -442,7 +445,8 @@ public class FileSystem {
 		// check whether the file already exists and is a directory
 		File dirCheckFile = new File(fileName);
 		if (dirCheckFile.exists() && dirCheckFile.isDirectory()) {
-			return IO_ERROR;
+			return getIO_Error(fileName + " could not be opend. This is no file, but a directory");
+//			return IO_ERROR;
 		}
 		
 		FileStreamData fsd = new FileStreamData();
@@ -460,19 +464,23 @@ public class FileSystem {
 				break;
 			default:
 				Log.e("FileSystem", "open: invalid mode: " + m);
-				return INVALID_ARGUMENT;
+				return getINVALID_ARGUMENT_ERROR("mode has to be r, w or a");
+//				return INVALID_ARGUMENT;
 			}
 		}
 		if (!(fsd.read || fsd.write || fsd.append)) {
 			Log.e("FileSystem", "open: no mode specified");
-			return INVALID_ARGUMENT;
+			return getINVALID_ARGUMENT_ERROR("FileSystem, open: no mode specified");
+//			return INVALID_ARGUMENT;
 		}
 
 		if (encoding == null) {
-			return INVALID_ARGUMENT;
+			return getINVALID_ARGUMENT_ERROR("missing encoding");
+//			return INVALID_ARGUMENT;
 		}
 		if (!"UTF-8".equals(encoding) && !"ISO8859-1".equals(encoding)) {
-			return INVALID_ARGUMENT;
+			return getINVALID_ARGUMENT_ERROR("Encoding has to be UTF-8 or ISO8859-1");
+//			return INVALID_ARGUMENT;
 		}			
 
 		RandomAccessFile raf = null;
@@ -484,9 +492,11 @@ public class FileSystem {
 			fsd.target = raf;
 
 		} catch (FileNotFoundException e) {
-			return IO_ERROR;
+			return getIO_Error("File with name " + fileName + " was not found. Exception: " + e.getMessage());
+//			return IO_ERROR;
 		} catch (IOException e) {
-			return IO_ERROR;
+			return getIO_Error("IO Exception: " + e.getMessage());
+//			return IO_ERROR;
 		}
 		// create a UID
 
@@ -607,10 +617,12 @@ public class FileSystem {
 	public String readBytes(String id, long position, long byteCount) {
 		FileStreamData fsd = openFiles.get(Integer.valueOf(id));
 		if (fsd == null)
-			return IO_ERROR;
+			return getIO_Error("Could not open stream to file " + id);
+//			return IO_ERROR;
 		RandomAccessFile target = fsd.target;
 		if (target == null)
-			return IO_ERROR;
+			return getIO_Error("Could not open file " + id);
+//			return IO_ERROR;
 		try {
 			if (byteCount == 0)
 				byteCount = Long.MAX_VALUE;
@@ -628,17 +640,20 @@ public class FileSystem {
 					.valueOf(target.getFilePointer()) : Long.valueOf(position));
 			return new JSONObject(data).toString();
 		} catch (IOException io) {
-			return IO_ERROR;
+			return getIO_Error("IOException: " + io.getMessage());
+//			return IO_ERROR;
 		}
 	}
 
 	public String read64(String id, long position, long byteCount) {
 		FileStreamData fsd = openFiles.get(Integer.valueOf(id));
 		if (fsd == null)
-			return IO_ERROR;
+			return getIO_Error("Could not open filestream with id " + id);
+//			return IO_ERROR;
 		RandomAccessFile target = fsd.target;
 		if (target == null)
-			return IO_ERROR;
+			return getIO_Error("Could not open file " + id);
+//			return IO_ERROR;
 		try {
 			if (byteCount == 0)
 				byteCount = Long.MAX_VALUE;
@@ -653,7 +668,8 @@ public class FileSystem {
 					.valueOf(target.getFilePointer()) : Long.valueOf(position));
 			return new JSONObject(data).toString();
 		} catch (IOException io) {
-			return IO_ERROR;
+			return getIO_Error("IO Exception " + io.getMessage());
+//			return IO_ERROR;
 		}
 	}
 
@@ -672,14 +688,17 @@ public class FileSystem {
 	public String write(String id, long position, String stringData) {
 		FileStreamData fsd = openFiles.get(Integer.valueOf(id));
 		if (fsd == null)
-			return IO_ERROR;
+			return getIO_Error("Could not open filestream with id " + id);
+//			return IO_ERROR;
 		RandomAccessFile target = fsd.target;
 		if (target == null)
-			return IO_ERROR;
+			return getIO_Error("Could not open file " + id);
+//			return IO_ERROR;
 		try {
 			if (CHECK_APPEND_ORIGINAL_SIZE) {
 				if (fsd.append && !fsd.write && position < fsd.size)
-					return IO_ERROR;
+					return getIO_Error("Could not write to file file " + id + " at position " + position + " while filesize was " + fsd.size);
+//					return IO_ERROR;
 			}
 			target.seek(position);
 			target.write(stringData.getBytes(fsd.encoding));
@@ -688,7 +707,8 @@ public class FileSystem {
 					.valueOf(target.getFilePointer()) : Long.valueOf(position));
 			return new JSONObject(data).toString();
 		} catch (IOException io) {
-			return IO_ERROR;
+			return getIO_Error("IO Exception: " + io.getMessage());
+//			return IO_ERROR;
 		}
 
 	}
@@ -707,14 +727,17 @@ public class FileSystem {
 	public String writeBytes(String id, long position, String byteData) {
 		FileStreamData fsd = openFiles.get(Integer.valueOf(id));
 		if (fsd == null)
-			return IO_ERROR;
+			return getIO_Error("Could not open filestream " + id);
+//			return IO_ERROR;
 		RandomAccessFile target = fsd.target;
 		if (target == null)
-			return IO_ERROR;
+			return getIO_Error("Could not open file " + id);
+//			return IO_ERROR;
 		try {
 			if (CHECK_APPEND_ORIGINAL_SIZE) {
 				if (fsd.append && !fsd.write && position < fsd.size)
-					return IO_ERROR;
+					return getIO_Error("Could not write to file " + id + " at position " + position + " while filesize was " + fsd.size);
+//					return IO_ERROR;
 			}
 			target.seek(position);
 			target.writeBytes(byteData);
@@ -724,7 +747,8 @@ public class FileSystem {
 			return new JSONObject(data).toString();
 
 		} catch (IOException io) {
-			return IO_ERROR;
+			return getIO_Error("IO Exception: " + io.getMessage());
+//			return IO_ERROR;
 		}
 	}
 
@@ -742,19 +766,23 @@ public class FileSystem {
 	public String write64(String id, long position, String base64Data) {
 		FileStreamData fsd = openFiles.get(Integer.valueOf(id));
 		if (fsd == null)
-			return IO_ERROR;
+			return getIO_Error("Could not open filestream to " + id);
+//			return IO_ERROR;
 		RandomAccessFile target = fsd.target;
 		if (target == null)
-			return IO_ERROR;
+			return getIO_Error("Could not open file " + id);
+//			return IO_ERROR;
 		try {
 			if (CHECK_APPEND_ORIGINAL_SIZE) {
 				if (fsd.append && !fsd.write && position < fsd.size)
-					return IO_ERROR;
+					return getIO_Error("Could not write to file " + id + " at position " + position + " while filesize was " + fsd.size);
+//					return IO_ERROR;
 			}
 			target.seek(position);
 			byte base64[] = base64Data.getBytes("ISO8859-1");
 			if (!Base64.isArrayByteBase64(base64))
-				return IO_ERROR;
+				return getIO_Error("File " + id + " is not a ByteBase64 array");
+//				return IO_ERROR;
 
 			target.write(Base64.encodeBase64(base64));
 			Map<String, Object> data = new HashMap<String, Object>();
@@ -762,7 +790,8 @@ public class FileSystem {
 					.valueOf(target.getFilePointer()) : Long.valueOf(position));
 			return new JSONObject(data).toString();
 		} catch (IOException io) {
-			return IO_ERROR;
+			return getIO_Error("IO Exception: " + io.getMessage());
+//			return IO_ERROR;
 		}
 
 	}
@@ -833,17 +862,20 @@ public class FileSystem {
 					if (toDelete.peek() == filePeek) {
 						toDelete.poll();
 						if (!filePeek.delete()) {
-							return IO_ERROR;
+							return getIO_Error("System was unable to delete " + filePeek.getName() + " at " + filePeek.getAbsolutePath());
+//							return IO_ERROR;
 						}
 					}
 				}
 			} else {
 				File f = new File(dir);
 				if (!f.delete())
-					return IO_ERROR;
+					return getIO_Error("System was unable to delete file " + f.getName() + " in " + f.getAbsolutePath());
+//					return IO_ERROR;
 			}
 		} catch (SecurityException se) {
-			return PERMISSION_DENIED_ERROR;
+			return getSecurityError(se.getMessage());
+//			return PERMISSION_DENIED_ERROR;
 		}
 
 		return "true";
@@ -864,7 +896,8 @@ public class FileSystem {
 //				return IO_ERROR;
 			}
 		} catch (SecurityException se) {
-			return PERMISSION_DENIED_ERROR;
+			return getSecurityError(se.getMessage());
+//			return PERMISSION_DENIED_ERROR;
 		}
 		return "true";
 	}
@@ -925,7 +958,6 @@ public class FileSystem {
 			return getIO_Error("path to filelocation must be a directory");
 //			return IO_ERROR;
 		File target = new File(path, name);
-		System.out.println("target Exists: " + target.exists());
 		try {
 			if (target.createNewFile())
 				return resolve(target.getAbsolutePath());
@@ -940,6 +972,14 @@ public class FileSystem {
 //			return PERMISSION_DENIED_ERROR;
 		}
 
+	}
+	
+	
+	private String getINVALID_ARGUMENT_ERROR(String message){
+		Map<String, Object> result = new HashMap<String, Object>();
+		result.put("error", Short.valueOf((short) 10001));
+		result.put("errorMessage", message);
+		return new JSONObject(result).toString();
 	}
 	
 	private String getIO_Error(String message){

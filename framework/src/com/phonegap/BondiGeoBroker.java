@@ -34,15 +34,19 @@ public class BondiGeoBroker {
 			List<String> providers = mLocMan.getAllProviders();
 
 			boolean noProvider = true;
+			boolean allProvidersDisabled = true;
 			Location loc = null;
 			for (String provName : providers){
 				if (loc == null && (mLocMan.getProvider(provName) != null)){
 					loc = mLocMan.getLastKnownLocation(provName);
 					noProvider = false;
 				} 
+				if (mLocMan.isProviderEnabled(provName)){
+					allProvidersDisabled = false;
+				}
 			}
 
-			if (noProvider){
+			if (noProvider || allProvidersDisabled){
 				mAppView.loadUrl("javascript:bondi.geolocation.fail(" + id + ",'Currently is no Location-Provider avaiable - check devicesettings')");
 			}
 
