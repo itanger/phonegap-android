@@ -48,6 +48,7 @@ public class BondiGeoBroker {
 
 			if (noProvider || allProvidersDisabled){
 				mAppView.loadUrl("javascript:bondi.geolocation.fail(" + id + ",'Currently is no Location-Provider avaiable - check devicesettings')");
+				return;
 			}
 
 
