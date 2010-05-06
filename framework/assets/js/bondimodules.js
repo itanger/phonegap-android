@@ -1,3 +1,4 @@
+
 /*
  * 
  * 
@@ -7,7 +8,7 @@
  */
 //bondi
 //if (typeof(bondi) != 'object')
-//	bondi = {};
+//bondi = {};
 
 function GenericError(code, message) {
 	this.code = code;
@@ -108,24 +109,24 @@ function BondiCameraManager() {
 }
 
 //function initCams () {
-//	var cams = [];
-//	cams.push(new BondiCamera());
-//	return cams;
+//var cams = [];
+//cams.push(new BondiCamera());
+//return cams;
 //}
-//
+
 //BondiCameraManager.prototype._cams = initCams(); 
-//
+
 //BondiCameraManager.prototype.__defineSetter__("_cams", function(x) {
-//
-//	if (typeof this._cams == "undefined"){
-//		this._cams = x;
-//	} else {
-//
-//		var error = new DeviceAPIError();
-//		error.code = error.NOT_SUPPORTED_ERROR;
-//		error.message = "Cams are readonly";
-//		throw error;
-//	}
+
+//if (typeof this._cams == "undefined"){
+//this._cams = x;
+//} else {
+
+//var error = new DeviceAPIError();
+//error.code = error.NOT_SUPPORTED_ERROR;
+//error.message = "Cams are readonly";
+//throw error;
+//}
 //});
 
 /**
@@ -225,54 +226,54 @@ BondiCamera.prototype.description = BondiCamera.description;
  *             DeviceAPIError, CameraError
  */
 BondiCamera.prototype.takePicture = function(successCallback, errorCallback, options) {
-		var error;
-		if (typeof errorCallback != "function"){
-			error = new DeviceAPIError();
-			error.code = error.INVALID_ARGUMENT_ERROR;
-			error.message = "errorCallback has to be defined and a function";
-			throw error;
-		} else if (typeof successCallback != "function"){
-			error = new DeviceAPIError();
-			error.code = error.INVALID_ARGUMENT_ERROR;
-			error.message = "successCallback has to be defined and a function";
-			errorCallback(error);
-			throw error;
-		}
+	var error;
+	if (typeof errorCallback != "function"){
+		error = new DeviceAPIError();
+		error.code = error.INVALID_ARGUMENT_ERROR;
+		error.message = "errorCallback has to be defined and a function";
+		throw error;
+	} else if (typeof successCallback != "function"){
+		error = new DeviceAPIError();
+		error.code = error.INVALID_ARGUMENT_ERROR;
+		error.message = "successCallback has to be defined and a function";
+		errorCallback(error);
+		throw error;
+	}
 
-		if(typeof(options) != 'object'){
-			options = {};
-		}
-		if (options.quality == 'undefined') {
-			options.quality = 80;
-		}
-		if (options.width == 'undefined'){
-			options.width = 480;
-		}
-		if (options.height == 'undefined'){
-			options.height = 640;
-		}
-		var camStatus = GapCam.takePictureFile(options.quality, options.width, options.height, this.id);
+	if(typeof(options) != 'object'){
+		options = {};
+	}
+	if (options.quality == 'undefined') {
+		options.quality = 80;
+	}
+	if (options.width == 'undefined'){
+		options.width = 480;
+	}
+	if (options.height == 'undefined'){
+		options.height = 640;
+	}
+	var camStatus = GapCam.takePictureFile(options.quality, options.width, options.height, this.id);
 
-		if (camStatus == "occupied"){
-			error = new CameraError();
-			error.code = error.CAMERA_ALREADY_IN_USE_ERROR;
-			error.message = "camera is already in use please try again later";
-			errorCallback(error);
-			//throw error;
-		} else if (camStatus == "Permission Denied"){
-			error = new SecurityError ()
-			error.code = error.PERMISSION_DENIED_ERROR;
-			error.message = "Permission to take picture was denied";
-			errorCallback(error);
-			//throw error;
-		}
-		
-		// only other case: camStatus == "unoccupied"
-		
-		this.win=successCallback;
-		this.failure=errorCallback;
-		
-		return new PendingOperation();
+	if (camStatus == "occupied"){
+		error = new CameraError();
+		error.code = error.CAMERA_ALREADY_IN_USE_ERROR;
+		error.message = "camera is already in use please try again later";
+		errorCallback(error);
+		//throw error;
+	} else if (camStatus == "Permission Denied"){
+		error = new SecurityError ()
+		error.code = error.PERMISSION_DENIED_ERROR;
+		error.message = "Permission to take picture was denied";
+		errorCallback(error);
+		//throw error;
+	}
+
+	// only other case: camStatus == "unoccupied"
+
+	this.win=successCallback;
+	this.failure=errorCallback;
+
+	return new PendingOperation();
 }
 
 /**
@@ -398,8 +399,8 @@ function BondiGeolocation() {
 	this.lastError = null;
 	this.listeners = [];
 //	this.callbacks = {
-//			onLocationChanged: [],
-//			onError:           []
+//	onLocationChanged: [],
+//	onError:           []
 //	};
 };
 
@@ -425,7 +426,6 @@ BondiGeolocation.prototype.getCurrentPosition = function(successCallback, errorC
 {
 	var error;
 	var errorCbIsDefined = false;
-	
 
 	if ((typeof errorCallback != 'undefined')  && (errorCallback != null)){
 		if (typeof errorCallback != 'function'){
@@ -438,7 +438,7 @@ BondiGeolocation.prototype.getCurrentPosition = function(successCallback, errorC
 				error = new DeviceAPIError();
 				error.code = error.INVALID_ARGUMENT_ERROR;
 				error.message = "errorCallback must be a function if defined";
-				throw(error);
+				throw error;
 			}
 		} else {
 			errorCbIsDefined = true;
@@ -452,7 +452,7 @@ BondiGeolocation.prototype.getCurrentPosition = function(successCallback, errorC
 		error.message = "SuccessCallback must be defined, a function and not be null";
 		throw error;
 //		if (errorCbIsDefined) {
-//			errorCallback(error);
+//		errorCallback(error);
 //		}
 		return;
 	} 
@@ -475,7 +475,7 @@ BondiGeolocation.prototype.getCurrentPosition = function(successCallback, errorC
 				error.message = "maximumAge must be higher than -1";
 				throw error;
 //				if (errorCbIsDefined) {
-//					errorCallback(error);
+//				errorCallback(error);
 //				}
 				return;
 			} else if (options.maximumAge != 0){
@@ -490,9 +490,14 @@ BondiGeolocation.prototype.getCurrentPosition = function(successCallback, errorC
 						return;
 					} else {
 						// location is an positionError instead
-						throw error;
+						if (errorCbIsDefined) {
+							errorCallback(location);
+						} else {
+							throw location;
+						}
+						return;
 //						if (errorCbIsDefined) {
-//							errorCallback(location);
+//						errorCallback(location);
 //						}
 					}
 				} else {
@@ -500,7 +505,6 @@ BondiGeolocation.prototype.getCurrentPosition = function(successCallback, errorC
 				}
 			}
 		}// END maximumAge
-		
 		// Now look if there is a timeout included
 		if (typeof options.timeout != "undefined" && options.timeout != null){
 
@@ -512,7 +516,7 @@ BondiGeolocation.prototype.getCurrentPosition = function(successCallback, errorC
 				error.message = "Timeout can't be a point in time before the present, so it has to be > -1";
 				throw error;
 //				if (errorCbIsDefined) {
-//					errorCallback(error);
+//				errorCallback(error);
 //				}
 				return;
 			} else {
@@ -532,14 +536,13 @@ BondiGeolocation.prototype.getCurrentPosition = function(successCallback, errorC
 			error.message = "if options are defined they have to include at least one valid option";
 			throw error;
 //			if (errorCbIsDefined) {
-//				errorCallback(error);
+//			errorCallback(error);
 //			} 
 			return;
 		} 
 	}
 
-	
-	
+
 	// PositionData was null or to old -> New PositionData has to be acquired
 	if (typeof this.listeners == "undefined"){
 		this.listeners = [];
@@ -553,7 +556,6 @@ BondiGeolocation.prototype.getCurrentPosition = function(successCallback, errorC
 		"maximumAge" : null,
 		"timeout" : null
 	}) - 1;
-
 	if (isTimeoutSet){
 		var that = this;
 
@@ -585,9 +587,14 @@ BondiGeolocation.prototype.getCurrentPosition = function(successCallback, errorC
 						bGeo.stop(key);
 						clearTimeout(that.listeners[key].timer);
 						that.listeners[key].timer = null;
+						error = new PositionError();
+						error.code = PositionError.TIMEOUT;
+						error.message = "Timeout without a location avaiable";
 						if (errorCbIsDefined) {
-							errorCallback(location);
-						} 
+							errorCallback(error);
+						} else {
+							throw error;
+						}
 						return;
 					}
 				} else {
@@ -596,8 +603,10 @@ BondiGeolocation.prototype.getCurrentPosition = function(successCallback, errorC
 					error.code = PositionError.TIMEOUT;
 					error.message = "Timeout without a location that was sufficient up to date";
 					if (errorCbIsDefined) {
-						errorCallback(location);
-					} 
+						errorCallback(error);
+					} else {
+						throw error;
+					}
 					that.listeners[key].oneShot = "false";
 					bGeo.stop(key);
 					clearTimeout(that.listeners[key].timer);
@@ -608,7 +617,6 @@ BondiGeolocation.prototype.getCurrentPosition = function(successCallback, errorC
 		}, options.timeout);
 		this.listeners[key].timer = timer;
 	}
-	
 	bGeo.getCurrentLocation(key);
 }
 
@@ -694,7 +702,7 @@ BondiGeolocation.prototype.watchPosition = function(successCallback, errorCallba
 
 	// BEGIN argument checking and error handling		
 	var errorCbIsDefined = false;
-	
+
 	if ((typeof errorCallback != 'undefined')  && (errorCallback != null)){
 		if (typeof errorCallback != 'function'){
 			// check of strange interpretation of "optional parameter" from frauenhofer-focus
@@ -720,11 +728,11 @@ BondiGeolocation.prototype.watchPosition = function(successCallback, errorCallba
 		error.message = "SuccessCallback must be defined, a function and not be null";
 		throw error;
 //		if (errorCbIsDefined) {
-//			errorCallback(error);
+//		errorCallback(error);
 //		}
 		return;
 	} 
-	
+
 	if ((typeof options != "undefined") && (options != null)){
 		var isValid = false;
 		if ((typeof options.timeout != "undefined") && (options.timeout != null)){
@@ -738,7 +746,7 @@ BondiGeolocation.prototype.watchPosition = function(successCallback, errorCallba
 				error.message = "timeout must not be < -1";
 				throw error;
 //				if (errorCbIsDefined) {
-//					errorCallback(error);
+//				errorCallback(error);
 //				}
 				return;
 			}
@@ -753,7 +761,7 @@ BondiGeolocation.prototype.watchPosition = function(successCallback, errorCallba
 				error.message = "maximumAge has to be > -1";
 				throw error;
 //				if (errorCbIsDefined) {
-//					errorCallback(error);
+//				errorCallback(error);
 //				}
 				return;
 			}
@@ -763,20 +771,20 @@ BondiGeolocation.prototype.watchPosition = function(successCallback, errorCallba
 				isValid = true;
 			}
 		}
-		
+
 		if (!isValid){
 			error = new DeviceAPIError();
 			error.code = error.INVALID_ARGUMENT_ERROR;
 			error.message = "if options are defined they have to include at least one valid option";
 			throw error;
 //			if (errorCbIsDefined) {
-//				errorCallback(error);
+//			errorCallback(error);
 //			} 
 			return;
 		} 
 	} // END ArgumentChecking and errorHandling
-	
-	
+
+
 
 	if (typeof this.listeners == "undefined"){
 		this.listeners = [];
@@ -820,7 +828,7 @@ BondiGeolocation.prototype.watchPosition = function(successCallback, errorCallba
 		}, timeout);
 
 		this.listeners[key].timer = timer;
-		
+
 		if (maximumAge > timeout){
 			return bGeo.start(timeout, key);
 		} else {
@@ -867,7 +875,7 @@ BondiGeolocation.prototype.success = function(key, lat, lng, alt, acc, altacc, h
 							// lastKnownPosition is older than maximumAge
 							var error = new PositionError();
 							error.code = PositionError.POSITION_UNAVAILABLE;
-							error.message = "No position avaible with age < than maximumAge";
+							error.message = "No position avaiable with age < than maximumAge";
 							if (this.listeners[key].fail != null){
 								this.listeners[key].fail(error);
 							}
@@ -1360,8 +1368,8 @@ DeviceStatusManager.prototype.listVocabularies = function() {
 DeviceStatusManager.prototype.listAspects = function(vocabularyName){
 	var aspectIDs = [];
 	var aspects = null;
-        var i = 0;
-	
+	var i = 0;
+
 	if (typeof vocabularyName == "undefined"){
 		aspects = this.defaultVocabulary.aspects;
 	} else {	
@@ -1394,15 +1402,15 @@ DeviceStatusManager.prototype.getComponents = function(aspectName){
 
 	var vocabularyName = aspectName.vocabulary;
 	var aspect = null;
-    var error;
-	
+	var error;
+
 	if (typeof vocabularyName == "undefined"){
 		aspect = this.defaultVocabulary.searchAspect(aspectName.aspect);
 	} else {
 		aspect = this.getVocabulary(vocabularyName).searchAspect(aspectName.aspect);
 		var found = false;
 	}
-	
+
 	if (aspect == null){
 		error = new DeviceAPIError();
 		error.code = error.INVALID_ARGUMENT_ERROR;
@@ -1434,7 +1442,7 @@ DeviceStatusManager.prototype.getVocabulary = function(vocabularyName){
 
 DeviceStatusManager.prototype.listProperties = function(aspectName){
 	var vocabulary = null;
-    var error;
+	var error;
 
 	if (typeof aspectName.vocabulary == "undefined"){
 		vocabulary = this.defaultVocabulary;
@@ -1461,7 +1469,7 @@ DeviceStatusManager.prototype.listProperties = function(aspectName){
 
 DeviceStatusManager.prototype.listImplementedProperties = function(aspectName){
 	var vocabulary = null;
-    var error;
+	var error;
 
 	if (typeof aspectName.vocabulary == "undefined"){
 		vocabulary = this.defaultVocabulary;
@@ -1493,12 +1501,12 @@ DeviceStatusManager.prototype.listImplementedProperties = function(aspectName){
  * @param options The set of options which will specify the granularity of notifications.
  */
 DeviceStatusManager.prototype.watchPropertyChange = function(propertyRef, propertyChangeSuccessCallback, options){
-    var error;
+	var error;
 	var property = null;
 	var aspect = null;
 	var component = null;
 	var vocabulary = null; // this.defaultVocabulary;
-	
+
 	var minChangePercent = 0;
 	var callCallbackOnRegister = false;
 
@@ -1577,11 +1585,11 @@ DeviceStatusManager.prototype.watchPropertyChange = function(propertyRef, proper
 
 	var now = new Date().getTime();
 	var key = this.listeners.push({propRef:propertyRef, callBack:propertyChangeSuccessCallback, ops:options, timers:[], propertyChangedFlag:false, lastCallTime:now}) -1;
-	
+
 	if (typeof options.minChangePercent != "undefined"){
 		minChangePercent = options.minChangePercent;
 	}
-	
+
 
 	var minTSet = false;
 	if (typeof options.minTimeout != "undefined"){
@@ -1594,7 +1602,7 @@ DeviceStatusManager.prototype.watchPropertyChange = function(propertyRef, proper
 			throw error;
 		}	
 	}
-		
+
 	var maxTSet = false;
 	if (typeof options.maxTimeout != 'undefined'){
 		maxTSet = true;
@@ -1616,7 +1624,7 @@ DeviceStatusManager.prototype.watchPropertyChange = function(propertyRef, proper
 			}
 		}
 	}
-	
+
 	if (typeof options.callCallbackOnRegister != "undefined" && options.callCallbackOnRegister != null){
 		if (options.callCallbackOnRegister == true || options.callCallbackOnRegister == false){
 			callCallbackOnRegister = options.callCallbackOnRegister;
@@ -1694,39 +1702,39 @@ DeviceStatusManager.prototype.watchPropertyChange = function(propertyRef, proper
 		var minTimer = {};
 		minTimer.time = options.minTimeout;
 		minTimer.title = "minTimeout";
-		
+
 		if (options.minTimeout < 2000){
 			options.minTimeout = 2000;
 		}
-		
+
 		var minTimerID = setTimeout(function(){
 			that.propertyChanged(key,null,"minTimeout");			
 		}, options.minTimeout); 
 		minTimer.id = minTimerID;
 		this.listeners[key].timers.push(minTimer);
 	}
-	
+
 	if (maxTSet && options.maxTimeout > 0){
 		//activate maxTimer
 		var maxTimer = {};
 		maxTimer.time = options.maxTimeout;
 		maxTimer.title = "maxTimeout";
-		
+
 		if (options.maxTimeout < 2000){
 			options.maxTimeout = 2000;
 		}
-		
+
 		var maxTimerID = setTimeout(function(){
 			that.propertyChanged(key,null,"maxTimeout");			
 		}, options.maxTimeout); 
 		maxTimer.id = maxTimerID;
 		this.listeners[key].timers.push(maxTimer);
 	}
-	
+
 	// Java Version
 //	DStatus.startTimer(key, options.minTimeout, options.maxTimeout);
 //	DStatus.startTimer(key, 1000, 5000);
-	
+
 	return key;
 }
 
@@ -1737,7 +1745,7 @@ DeviceStatusManager.prototype.restartTimers = function (key) {
 		if (typeof this.listeners[key].timers != 'undefined'){
 			var timers = this.listeners[key].timers;
 			var that = this;
-			
+
 			this.listeners[key].timers = [];
 			while (timers.length > 0){
 				timer = timers.pop();
@@ -1754,7 +1762,7 @@ DeviceStatusManager.prototype.restartTimers = function (key) {
 
 
 DeviceStatusManager.prototype.propertyChanged = function(key, propertyValue, title){
-	
+
 	var minCall = false;
 	var maxCall = false;
 	if (typeof title != "undefined"){
@@ -1764,7 +1772,7 @@ DeviceStatusManager.prototype.propertyChanged = function(key, propertyValue, tit
 			maxCall = true;
 		}
 	}
-	
+
 	if ((typeof this.listeners[key] != 'undefined') && (this.listeners[key] != null)){
 		if (typeof this.listeners[key].callBack != "undefined"){
 			var options = this.listeners[key].ops;
@@ -1831,7 +1839,7 @@ DeviceStatusManager.prototype.clearPropertyChange = function(key){
 		error.message = "Tried to unregister a listener with undefined key or null";
 		throw error;
 	}
-	
+
 	var propertyRef = this.listeners[key].propRef;
 
 	if (propertyRef.aspect == "Display"){
@@ -1850,8 +1858,8 @@ DeviceStatusManager.prototype.clearPropertyChange = function(key){
 		alert("tried to remove a listener, but there was no unregister-procedure in clearPropertyChange for it");
 	}
 //	if (typeof this.listeners[key].timer != "undefined" && this.listeners[key].timer != null){
-//		var timer = this.listeners[key].timer;
-//		clearTimeout(timer);
+//	var timer = this.listeners[key].timer;
+//	clearTimeout(timer);
 //	}
 //	DStatus.cancelTimer(key);
 	this.listeners[key] = null;
@@ -1868,7 +1876,7 @@ DeviceStatusManager.prototype.clearAllPropertyChange = function(){
 
 
 DeviceStatusManager.prototype.getPropertyValue = function(propertyRef){
-    var error;
+	var error;
 	var property = null;
 	var aspect = null;
 	var component = null;
@@ -1992,7 +2000,7 @@ DeviceStatusManager.prototype.getPropertyValue = function(propertyRef){
 }
 
 DeviceStatusManager.prototype.setPropertyValue = function(propertyRef){
-    var error;
+	var error;
 	var property = null;
 	var aspect = null;
 	var component = null;
@@ -2062,7 +2070,7 @@ DeviceStatusManager.prototype.setPropertyValue = function(propertyRef){
 
 
 DeviceStatusManager.prototype.setDefaultVocabulary = function(vocabulary){
-    var error;
+	var error;
 	if (typeof vocabulary == "undefined" || vocabulary == null || vocabulary == ''){
 		error = new DeviceAPIError();
 		error.code = error.INVALID_ARGUMENT_ERROR;
@@ -2100,8 +2108,8 @@ function oc(a)
 
 
 //PhoneGap.addConstructor(function() {
-//	if (typeof bondi.devicestatus == "undefined") bondi.devicestatus = new DeviceStatusManager();
-//	if (typeof bondi.devicestatusManager == "undefined") bondi.devicestatusManager = bondi.devicestatus;
+//if (typeof bondi.devicestatus == "undefined") bondi.devicestatus = new DeviceStatusManager();
+//if (typeof bondi.devicestatusManager == "undefined") bondi.devicestatusManager = bondi.devicestatus;
 //});
 
 
@@ -2128,6 +2136,8 @@ PhoneGap.addConstructor(function() {
  */
 FileSystemManager.prototype.getDefaultLocation = function(specifier, minFreeSpace) {
 
+	var error;
+
 	if (typeof minFreeSpace == 'undefined')
 		minFreeSpace = 0;
 
@@ -2137,12 +2147,14 @@ FileSystemManager.prototype.getDefaultLocation = function(specifier, minFreeSpac
 		error.message = "minFreeSpace must be a number";
 		throw error;
 	}
-	
+
 	if (minFreeSpace >= 0 && specifier in oc(this.legalLocations)) {
 		var defaultLocation = FileSystem.getDefaultLocation(specifier,minFreeSpace);
 		if (typeof defaultLocation == 'undefined') {
 			defaultLocation = null;
-			throw new DeviceAPIError(10001);
+			error = new DeviceAPIError(10001);
+			error.message = "defaultLocation has to be defined";
+			throw error;
 			return;
 		} else {
 			defaultLocation = defaultLocation + '';
@@ -2150,7 +2162,9 @@ FileSystemManager.prototype.getDefaultLocation = function(specifier, minFreeSpac
 		return defaultLocation;
 	}
 	else {
-		throw new DeviceAPIError(10001);
+		error = new DeviceAPIError(10001);
+		error.message = "minFreeSpace has to be >= 0, and defaultlocation must be legal choice";
+		throw error;
 		return null;
 	}
 }
@@ -2287,12 +2301,12 @@ FileSystemManager.prototype.resolve = function(successCallback, errorCallback, l
  * @throws DeviceAPIError
  */
 FileSystemManager.prototype.registerEventListener = function(listener) {
-	
+
 	if (typeof listener != 'function'){
 		var error = new DeviceAPIError();
 		error.code = error.INVALID_ARGUMENT_ERROR;
 		error.message = "listener has to be defined and a function.";
-    	throw error;
+		throw error;
 	}
 	this.eventListener.push(listener);
 }
@@ -2307,18 +2321,18 @@ FileSystemManager.prototype.registerEventListener = function(listener) {
  * @throws DeviceAPIError
  */
 FileSystemManager.prototype.unregisterEventListener = function(listener) {
-	
+
 	if (typeof listener != 'function'){
 		var error = new DeviceAPIError();
 		error.code = error.INVALID_ARGUMENT_ERROR;
 		error.message = "listener has to be defined and a function.";
-    	throw error;
+		throw error;
 	}
-	
+
 	this.eventListener = this.eventListener.filter(
 			function(element,index,array) {
 				return (listener !== element);
-	});
+			});
 }
 
 /**
@@ -2345,18 +2359,18 @@ FileSystemListener.prototype.unmountEvent= function(location) {
 }
 
 function BondiFile(){
-	
+
 	// this.initialized = false;
-    this.parent = null;
-    this.readOnly = false;
-    this.isFile = false;
-    this.isDirectory = false;
-    this.created = new Date();
-    this.modified = new Date();
-    this.path = "";
-    this.name = "";
-    this.absolutePath = "";
-    this.fileSize;
+	this.parent = null;
+	this.readOnly = false;
+	this.isFile = false;
+	this.isDirectory = false;
+	this.created = new Date();
+	this.modified = new Date();
+	this.path = "";
+	this.name = "";
+	this.absolutePath = "";
+	this.fileSize;
 	this.metadata={};
 	this.fail = function(){alert('operation failed');};
 	this.success = function(){alert('operation successful');};
@@ -2383,16 +2397,26 @@ BondiFile.prototype.asString = function(){
  *             DeviceAPIError);
  */
 BondiFile.prototype.listFiles = function() {
+	var error;
 	var returntext = eval( "(" + FileSystem.listFiles(this.absolutePath) + ")");
 	if (returntext["error"] != null) {
-		throw new GenericError(returnvalue["error"]);
+		if (returnvalue["error"] == SecurityError.PERMISSION_DENIED_ERROR){
+			error = new SecurityError();
+			error.code = returnvalue["error"];
+			error.message = returnvalue["errorMessage"];
+		} else {
+			error = new DeviceAPIError();
+			error.code = error.IO_ERROR;
+			error.message = returnvalue["errorMessage"];
+		}
+		throw error;
 	}
 	var files = returntext["files"];
 	var result = [];
 	for (var i=0;i<files.length;i++) {
 		result[i] = this.resolve(files[i]);
 	}
-    return result;
+	return result;
 }
 
 /**
@@ -2406,8 +2430,8 @@ BondiFile.prototype.resolve = function(location) {
 	var returnvalue = eval("(" + FileSystem.resolve(location, this.absolutePath) + ")");
 	if (returnvalue["error"] != null) {
 		var error = new DeviceAPIError();
-		error.code = error.IO_ERROR;
-		error.message = returnvalue["error"]; 
+		error.code = returnvalue["error"];
+		error.message = returnvalue["errorMessage"]; 
 		throw error;
 	} else {
 		var result = new BondiFile();
@@ -2443,7 +2467,7 @@ BondiFile.prototype.open = function(mode, encoding) {
 		FileSystem.log(this.name + ":" + mode + ":" + encoding + " =>" + retval["error"]);
 		var error = new DeviceAPIError();
 		error.code = parseInt(retval["error"]);
-		error.message = retval["error"];
+		error.message = retval["errorMessage"];
 		throw error;
 	}
 	var stream = new FileStream();
@@ -2501,14 +2525,14 @@ BondiFile.prototype.copyTo = function(successCallback,errorCallback,filePath,ove
  */
 BondiFile.prototype.moveTo = function(successCallback, errorCallback, filePath, overwrite) {
 	var error;
-	
+
 	if (typeof errorCallback != "function"){
 		error = new DeviceAPIError();
 		error.code = error.INVALID_ARGUMENT_ERROR;
 		error.message = "errorCallback has to be defined and a function";
 		throw error;
 	} else if (typeof successCallback != "function"){
-        error = new DeviceAPIError();
+		error = new DeviceAPIError();
 		error.code = error.INVALID_ARGUMENT_ERROR;
 		error.message = "successCallback has to be defined and a function";
 		errorCallback(error);
@@ -2520,7 +2544,7 @@ BondiFile.prototype.moveTo = function(successCallback, errorCallback, filePath, 
 		errorCallback(error);
 		return;
 	}
-	
+
 	bondi.filesystem.success = successCallback;
 	bondi.filesystem.fail = errorCallback;
 	var result = FileSystem.moveTo(this.absolutePath, filePath, overwrite);
@@ -2569,11 +2593,11 @@ BondiFile.prototype.createDirectory = function(dirPath) {
 		result.modified = returnvalue["modified"];
 		result.isFile = returnvalue["isfile"];
 		result.isDirectory = returnvalue["isdirectory"];
-		
+
 		console.log("isDirectory=" + result.isDirectory);
-		
+
 		console.log("absolutePath=" + result.absolutePath);
-		
+
 		return result;
 	}	
 }
@@ -2615,10 +2639,10 @@ BondiFile.prototype.createFile = function(filePath){
 		result.modified = returnvalue["modified"];
 		result.isFile = returnvalue["isfile"];
 		result.isDirectory = returnvalue["isdirectory"];
-		
+
 		return result;
 	}	
-	
+
 }
 
 /**
@@ -2636,7 +2660,9 @@ BondiFile.prototype.deleteDirectorySynchron = function(recursive) {
 	if (ret == 'true' || ret == 'false')
 		return ret;
 	var returnvalue = eval("(" + ret + ")");
-	throw new DeviceAPIError(returnvalue["error"]);
+	var error = new DeviceAPIError(returnvalue["error"]);
+	error.message = returnvalue["errorMessage"];
+	throw error;
 
 }
 /**
@@ -2649,14 +2675,20 @@ BondiFile.prototype.deleteDirectorySynchron = function(recursive) {
  *             DeviceAPIError)
  */
 BondiFile.prototype.deleteDirectory = function(successCallback, errorCallback, recursive) {
-	
+	var error;
 	var myDoc = this;
 	// check the parameter
 	if (typeof successCallback != "function") {
-		throw new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR);   
+		error = new DeviceAPIError();
+		error.code = DeviceAPIError.INVALID_ARGUMENT_ERROR;
+		error.message = "SuccessCallback has to be defined and a function";
+		throw error;   
 	}
 	if (typeof errorCallback != "function") {
-		throw new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR);   
+		error = new DeviceAPIError();
+		error.code = DeviceAPIError.INVALID_ARGUMENT_ERROR;
+		error.message = "ErrorCallback has to be defined and a function";
+		throw error;
 	}
 	setTimeout(function() {
 		try {
@@ -2683,7 +2715,10 @@ BondiFile.prototype.deleteFile= function() {
 	if (ret == 'true' || ret == 'false')
 		return ret;
 	var returnvalue = eval("(" + ret + ")");
-	throw new DeviceAPIError(returnvalue["error"]);
+
+	var error = new DeviceAPIError(returnvalue["error"]);
+	error.message = returnvalue["errorMessage"];
+	throw error;
 }
 
 /**
@@ -2691,15 +2726,15 @@ BondiFile.prototype.deleteFile= function() {
  * Default Constructor.
  */
 function FileStream(){
-    // a unique identifier
+	// a unique identifier
 	this.int_id = null;
-	
+
 	// end of file
 	this.int_eof;
-	
+
 	// the current position
 	this.int_position = 0;
-	
+
 }
 
 FileStream.prototype.__defineGetter__("id", function() { 
@@ -2715,16 +2750,16 @@ FileStream.prototype.__defineGetter__("eof", function() {
 });
 
 FileStream.prototype.__defineSetter__("eof", function(x) {
-	
+
 });
 
 FileStream.prototype.__defineGetter__("position", function() { 
 	return this.int_position; 
-	});
+});
 
 FileStream.prototype.__defineSetter__("position", function(x) {
 	var size = FileSystem.getSize(this.int_id);
-	
+
 	if (size < x)
 		throw new DeviceAPIError(DeviceAPIError.IO_ERROR);
 	this.int_position = x;
@@ -2738,7 +2773,7 @@ FileStream.prototype.__defineGetter__("bytesAvailable", function() {
 });
 
 FileStream.prototype.__defineSetter__("bytesAvailable", function(x) {
-	
+
 });
 
 
@@ -2781,8 +2816,11 @@ FileStream.prototype.read = function(charCount) {
 FileStream.prototype.readBytes = function(byteCount){
 	var ret =  FileSystem.readBytes(this.int_id, this.int_position, byteCount);
 	var returnvalue = eval('(' + ret + ')');
-	if (returnvalue["error"] != null)
-		throw new DeviceAPIError(returnvalue["error"]);
+	if (returnvalue["error"] != null){
+		var error = new DeviceAPIError(returnvalue["error"]);
+		error.message = returnvalue["errorMessage"];
+		throw error;
+	}
 	this.position = returnvalue["new_pos"];
 	var bytes = returnvalue["data"];
 	var bytearray = [];
@@ -2802,8 +2840,11 @@ FileStream.prototype.readBytes = function(byteCount){
 FileStream.prototype.readBase64 = function(byteCount) {
 	var ret =  FileSystem.read64(this.int_id, this.int_position, byteCount);
 	var returnvalue = eval('(' + ret + ')');
-	if (returnvalue["error"] != null)
-		throw new DeviceAPIError(returnvalue["error"]);
+	if (returnvalue["error"] != null){
+		var error = new DeviceAPIError(returnvalue["error"]);
+		error.message = returnvalue["errorMessage"];
+		throw error;
+	}
 	this.position = returnvalue["new_pos"];
 	return returnvalue["data"];	
 }
@@ -2820,8 +2861,11 @@ FileStream.prototype.readBase64 = function(byteCount) {
 FileStream.prototype.write = function(stringData) {
 	var ret = FileSystem.write(this.int_id, this.int_position, stringData);
 	var returnvalue = eval('(' + ret + ')');
-	if (returnvalue["error"] != null)
-		throw new DeviceAPIError(returnvalue["error"]);
+	if (returnvalue["error"] != null){
+		var error = new DeviceAPIError(returnvalue["error"]);
+		error.message = returnvalue["errorMessage"];
+		throw error;
+	}
 	this.position = returnvalue["new_pos"];	
 }
 
@@ -2841,7 +2885,9 @@ FileStream.prototype.writeBytes = function(byteData){
 	var ret = FileSystem.writeBytes(this.int_id, this.position, t);
 	var returnvalue = eval('(' + ret + ')');
 	if (returnvalue["error"] != null) {
-		throw new DeviceAPIError(returnvalue["error"]);		
+		var error = new DeviceAPIError(returnvalue["error"]);
+		error.message = returnvalue["errorMessage"];
+		throw error;
 	}
 	this.position = returnvalue["new_pos"];
 }
@@ -2856,8 +2902,11 @@ FileStream.prototype.writeBytes = function(byteData){
 FileStream.prototype.writeBase64 = function(stringData) {
 	var ret = FileSystem.write64(this.int_id, this.int_position, stringData);
 	var returnvalue = eval('(' + ret + ')');
-	if (returnvalue["error"] != null)
-		throw new DeviceAPIError(returnvalue["error"]);
+	if (returnvalue["error"] != null){
+		var error = new DeviceAPIError(returnvalue["error"]);
+		error.message = returnvalue["errorMessage"];
+		throw error;
+	}
 	this.position = returnvalue["new_pos"];	
 }
 
@@ -2880,9 +2929,9 @@ FileSystemSuccessCallback.prototype.onSuccess = function(file) {
 }
 
 
-// endsWith
-// @param suffix
-// @return string ends with suffix
+//endsWith
+//@param suffix
+//@return string ends with suffix
 String.prototype.endsWith = function(str)
 {return (this.match(str+"$")==str)}
 
@@ -2894,16 +2943,16 @@ String.prototype.endsWith = function(str)
 //define interface messagingError
 function MessagingError() {
 }
-// There is no coverage
+//There is no coverage
 MessagingError.OUT_OF_COVERAGE_ERROR = 1;
 MessagingError.prototype.OUT_OF_COVERAGE_ERROR = MessagingError.OUT_OF_COVERAGE_ERROR;
 
-// Media addition is not possible, since the slide already includes a media file
-// that cannot coexist with the others.
+//Media addition is not possible, since the slide already includes a media file
+//that cannot coexist with the others.
 MessagingError.MMS_VIDEO_SLIDE_ERROR = 2;
 MessagingError.prototype.MMS_VIDEO_SLIDE_ERROR = MessagingError.MMS_VIDEO_SLIDE_ERROR;
 
-// Message size would be exceeded by the given operation.
+//Message size would be exceeded by the given operation.
 MessagingError.MMS_MESSAGE_SIZE_EXCEEDED_ERROR = 3;
 MessagingError.prototype.MMS_MESSAGE_SIZE_EXCEEDED_ERROR = MessagingError.MMS_MESSAGE_SIZE_EXCEEDED_ERROR;
 
@@ -2921,11 +2970,11 @@ MessagingManager.prototype.SENT_FOLDER =1;
 MessagingManager.prototype.OUTBOX_FOLDER = 2;
 MessagingManager.prototype.DRAFTS_FOLDER = 3;
 
-// array for callBack data to allow reports of success or failure
+//array for callBack data to allow reports of success or failure
 MessagingManager.prototype.callBacks = [];
-// array for smsReceivers
+//array for smsReceivers
 MessagingManager.prototype.smsReceivers = [];
-// array stores the ids of smsReceivers that are exclusive listeners
+//array stores the ids of smsReceivers that are exclusive listeners
 MessagingManager.prototype.smsExclusives = [];
 
 /**
@@ -2938,10 +2987,10 @@ MessagingManager.prototype.smsExclusives = [];
  * @throws DeviceAPIError
  */
 MessagingManager.prototype.createSMS = function(smsParams) {
-	
+
 	var newsms = new SMS();
-    var error;
-	
+	var error;
+
 	if (typeof smsParams == "object"){
 		if (typeof smsParams.body != "undefined"){
 			newsms.setProperty("body", smsParams.body);
@@ -2961,7 +3010,7 @@ MessagingManager.prototype.createSMS = function(smsParams) {
 				throw error;
 			}
 		}
-		
+
 		if (smsParams.store == true){
 			mMessageHandler.storeSMS(newsms.datetime, newsms.to, newsms.body, this.DRAFTS_FOLDER);
 		}
@@ -3001,7 +3050,7 @@ MessagingManager.prototype.sendSMS = function(successCallback, errorCallback, sm
 		error.message = "errorCallback has to be defined and a function";
 		throw error;
 	} else if (typeof successCallback != "function"){
-                error = new DeviceAPIError();
+		error = new DeviceAPIError();
 		error.code = error.INVALID_ARGUMENT_ERROR;
 		error.message = "successCallback has to be defined and a function";
 		errorCallback(error);
@@ -3022,14 +3071,14 @@ MessagingManager.prototype.sendSMS = function(successCallback, errorCallback, sm
 		errorCallback(error);
 		return;
 	}
-	
+
 	var callbackData = {};
 	callbackData.success = successCallback;
 	callbackData.failure = errorCallback;
 	callbackData.sms = sms;
-	
+
 	var key = this.callBacks.push(callbackData) -1;
-	
+
 	var message = validateSMS(sms);
 	if (message != ""){
 		error = new DeviceAPIError();
@@ -3038,16 +3087,16 @@ MessagingManager.prototype.sendSMS = function(successCallback, errorCallback, sm
 		errorCallback(error);
 		return;
 	}
-	
+
 	for (var i = 0; i < sms.to.length; i++){
 		mMessageHandler.sendSMS(sms.to[i], sms.body, sms.id, sms.store, key, sms.datetime);
 	}
-	
+
 	sms.folder = this.SENT_FOLDER;
-	
+
 	var newPendingOperation = new PendingOperation();
 	newPendingOperation.cancel = cancel;
-	
+
 	return newPendingOperation;
 }
 
@@ -3073,11 +3122,11 @@ MessagingManager.prototype.smsSuccess = function(key, result){
  */
 MessagingManager.prototype.smsFailure = function(key, result){
 	var callbackData = this.callBacks[key];
-	
+
 	var error = {};
 	error.code = result;
 	error.message = "failure sending sms, with body reading " + this.body;
-	
+
 	callbackData.failure(error);
 }
 
@@ -3111,7 +3160,7 @@ MessagingManager.prototype.smsReceived = function(key, messagebody, from){
  * @throws SecurityError, DeviceAPIError
  */
 MessagingManager.prototype.subscribeToSMSSynchron = function(listener, filter, exclusive) {
-	
+
 	var subscriptionData = {};
 	subscriptionData.port = null;
 	subscriptionData.sender = null;
@@ -3125,7 +3174,7 @@ MessagingManager.prototype.subscribeToSMSSynchron = function(listener, filter, e
 	}
 	if (exclusive == true || exclusive == false){
 		subscriptionData.exclusive = exclusive;
-		
+
 		if (exclusive == false){
 			/*
 			 *  new Listener isn't exclusive so only registered exclusive listeners
@@ -3140,7 +3189,7 @@ MessagingManager.prototype.subscribeToSMSSynchron = function(listener, filter, e
 				}
 				var portFound = false;
 				var senderFound = false;
-				
+
 				if (subData != null){
 					if (subscriptionData.port != null){
 						if (subData.port == subscriptionData.port){
@@ -3152,7 +3201,7 @@ MessagingManager.prototype.subscribeToSMSSynchron = function(listener, filter, e
 							senderFound = true;
 						}
 					}
-					
+
 					if (portFound && senderFound){
 						var error = new DeviceAPIError();
 						error.code = error.INVALID_ARGUMENT_ERROR;
@@ -3167,7 +3216,7 @@ MessagingManager.prototype.subscribeToSMSSynchron = function(listener, filter, e
 				var subData = this.smsReceivers[i];
 				var portFound = false;
 				var senderFound = false;
-				
+
 				if (subData != null){
 					if (subscriptionData.port != null){
 						if (subData.port == subscriptionData.port){
@@ -3179,7 +3228,7 @@ MessagingManager.prototype.subscribeToSMSSynchron = function(listener, filter, e
 							senderFound = true;
 						}
 					}
-					
+
 					if (portFound && senderFound){
 						var error = new DeviceAPIError();
 						error.code = error.INVALID_ARGUMENT_ERROR;
@@ -3189,14 +3238,14 @@ MessagingManager.prototype.subscribeToSMSSynchron = function(listener, filter, e
 				}
 			}
 		}
-		
+
 	} else {
 		var error = new DeviceAPIError();
 		error.code = error.INVALID_ARGUMENT_ERROR;
 		error.message = "exclusive parameter has to be false or true";
 		throw error;
 	}
-	
+
 	if (typeof listener == "undefined" || listener == null){
 		var error = new DeviceAPIError();
 		error.code = error.INVALID_ARGUMENT_ERROR;
@@ -3205,14 +3254,14 @@ MessagingManager.prototype.subscribeToSMSSynchron = function(listener, filter, e
 	} else {
 		subscriptionData.listener = listener;
 	}
-	
+
 	// All Parameters have been validated, so let's do the "actual work"
 	var key = this.smsReceivers.push(subscriptionData) -1;
-	
+
 	if(exclusive){
 		this.smsExclusives.push(key);
 	}
-	
+
 	mMessageHandler.subscribeToSMS(key, subscriptionData.port, subscriptionData.sender);
 	return key;
 }
@@ -3281,7 +3330,7 @@ MessagingManager.prototype.subscribeToSMS = function(successCallback, errorCallb
  * @throws SecurityError, DeviceAPIError
  */
 MessagingManager.prototype.unsubscribeFromSMS = function(subscribeHandler) {
-	
+
 	if (typeof subscribeHandler == "undefined" || subscribeHandler == null){
 		var error = new DeviceAPIError();
 		error.code = error.INVALID_ARGUMENT_ERROR;
@@ -3299,9 +3348,9 @@ MessagingManager.prototype.unsubscribeFromSMS = function(subscribeHandler) {
 		error.message = "subscription was allready unregistered";
 		throw error;
 	}
-	
+
 	mMessageHandler.unsubscribeFromSMS(subscribeHandler);
-	
+
 	if (this.smsReceivers[subscribeHandler].exclusive == true){
 		for (var i = 0; this.smsExclusives.length; i++){
 			if (this.smsExclusives[i] == subscribeHandler){
@@ -3316,7 +3365,7 @@ MessagingManager.prototype.unsubscribeFromSMS = function(subscribeHandler) {
 
 
 MessagingManager.prototype.unsubscribeFromAllSMS = function(){
-	
+
 	mMessageHandler.unsubscribeFromAllSMS();
 	this.smsReceivers = [];
 	this.smsExclusives = [];
@@ -3333,21 +3382,21 @@ function validateSMS(sms){
 	if (typeof sms.datetime == "undefined" || sms.datetime == null){
 		valid = valid + "datetime has to be defined and must not be null \n";
 	}
-		
+
 	if (typeof sms.id == "undefined" || sms.id == null){
 		valid = valid + "id has to be defined and must not be null \n";
 	}
-		
+
 	if (typeof sms.body == "undefined" || sms.body == null || sms.body == ""){
 		valid = valid + "messagebody has to be defined and must not be null or empty \n";
 	}
-	
+
 	if ((typeof sms.store == "undefined" || sms.store == null) || (typeof sms.read == "undefined" || sms.read == null)){
 		valid = valid + "store / read has to be defined and must not be null, but true or false \n";
 	} else if ((sms.store != true && sms.store != false) || (sms.read != true && sms.read != false)){
 		valid = valid + "store / read has to be defined and must not be null, but true or false \n";
 	}
-	
+
 	if (typeof sms.folder != "undefined"){
 		if (
 				sms.folder == bondi.messaging.DRAFTS_FOLDER ||
@@ -3361,16 +3410,16 @@ function validateSMS(sms){
 	} else {
 		valid = valid + "folder has to be defined and must not be null \n";
 	}
-	
+
 	if (sms.to.length < 1){
 		valid = valid + " sms has no phoneNumber to send to \n";
 	}
-	
+
 	for (var i = 0; i < sms.to.length; i++){
 		if (!mMessageHandler.isPhoneNumber(sms.to[i])){
 			valid = valid + sms.to[i] + "is not a valid phonenumber \n";
 		}
-		
+
 		if (sms.to[i] == "" || sms.to[i].length == 0 || sms.to[i] == null){
 			valid = valid + "all phone numbers must not be empty or null";
 		}
@@ -3402,7 +3451,7 @@ function SMS(id, datetime, body, store, folder, read)
 	} else {
 		this.id=id;
 	}
-	
+
 	if (typeof store == "undefined" || store == null){
 		this.store = true; // should this message be stored in sent folder?
 	} else {
@@ -3415,18 +3464,18 @@ function SMS(id, datetime, body, store, folder, read)
 			throw error;
 		}
 	}
-		
+
 	if (typeof body == "undefined" || body == null){
 		this.body = ""; // actual text of message
 	} else {
 		this.body=body;
 	}
-	
+
 	if (typeof folder == "undefined" || folder == null){
 		this.folder = bondi.messaging.DRAFTS_FOLDER; // reference to folder in which message will be stored (if store == true)
 		// folder must be one of INBOX_FOLDER, OUTBOX_FOLDER, SENT_FOLDER, DRAFTS_FOLDER defined in MessagingManager). 
 	} else {
-		
+
 		if (
 				folder == bondi.messaging.DRAFTS_FOLDER ||
 				folder == bondi.messaging.INBOX_FOLDER ||
@@ -3440,7 +3489,7 @@ function SMS(id, datetime, body, store, folder, read)
 			throw error;
 		}
 	}
-	
+
 	if (typeof read == "undefined" || read == null){
 		this.read = false; // if message was already read
 	} else {
@@ -3453,7 +3502,7 @@ function SMS(id, datetime, body, store, folder, read)
 			throw error;
 		}
 	}
-		
+
 	this.to = [];	
 }
 
@@ -3469,16 +3518,16 @@ function SMS(id, datetime, body, store, folder, read)
  */
 SMS.prototype.setProperty = function(propertyName, propertyValue) {
 
-	
+
 	if (typeof propertyName == "undefined" || typeof propertyValue == "undefined" || propertyName == null){
 		var error = new DeviceAPIError();
 		error.code = error.INVALID_ARGUMENT_ERROR;
 		error.message = "propertyName and propertyValue have to be defined and PropertyName must not be null";
 		throw error;
 	}
-	
+
 	if (propertyName == "body"){
-		
+
 		if (propertyValue == "" || propertyValue == null){
 			var error = new DeviceAPIError();
 			error.code = error.INVALID_ARGUMENT_ERROR;
@@ -3520,17 +3569,17 @@ SMS.prototype.setProperty = function(propertyName, propertyValue) {
  * @throws DeviceAPIError
  */
 SMS.prototype.getProperty = function(propertyName) {
-	
+
 	if (propertyName == "body"){
 		return this.body;
 	} else if (propertyName == "to"){
-		
+
 		var reciList = "";
 		for (var i = 0; i < this.to.length; i++){
 			reciList = to[i] + ";";
 		}
 		return reciList;
-		
+
 	} else if (propertyName == "id"){
 		return this.id;
 	} else if (propertyName == "read"){
@@ -3546,7 +3595,7 @@ SMS.prototype.getProperty = function(propertyName) {
 		error.code = DeviceAPIError.INVALID_ARGUMENT_ERROR;
 		error.message = "propertyName has to be one of these: body, to, id, read, store, folder, dateTime";
 		throw error;
-		
+
 		return null;
 	}
 }
@@ -3588,15 +3637,15 @@ SMS.prototype.appendRecipient = function(phoneNumber) {
 		error.message = "phoneNumber must not be empty or null";
 		throw error;
 	}
-	
+
 	if (!mMessageHandler.isPhoneNumber(phoneNumber)){
 		var error = new DeviceAPIError();
 		error.code = error.INVALID_ARGUMENT_ERROR;
 		error.message = "phoneNumber is no valid phonenumber or exceeds length conditions";
 		throw error;
 	}
-	
-	
+
+
 	this.to.push(phoneNumber);
 	return; // void
 }
@@ -3611,12 +3660,12 @@ SMS.prototype.clearRecipients = function() {
 ///////////
 
 PhoneGap.addConstructor(function() {
-    if (typeof bondi.messaging == "undefined") bondi.messaging = new MessagingManager();
-    if (typeof bondi.messagingManager == "undefined") bondi.messagingManager = bondi.messaging;
+	if (typeof bondi.messaging == "undefined") bondi.messaging = new MessagingManager();
+	if (typeof bondi.messagingManager == "undefined") bondi.messagingManager = bondi.messaging;
 });
 
 //PhoneGap.addConstructor(function() {
-//    if (typeof bondi.messagingmanager == "undefined") bondi.messagingmanager = new MessagingManager();
+//if (typeof bondi.messagingmanager == "undefined") bondi.messagingmanager = new MessagingManager();
 //});
 
 /**
@@ -3627,7 +3676,7 @@ PhoneGap.addConstructor(function() {
 function snippTheRecipients(sms, to){
 	var from = 0;
 	var toPos = -1;
-	
+
 	while (to.length > 0){
 		toPos = to.indexOf(";");
 		if (toPos == -1){
@@ -3670,78 +3719,78 @@ Bondi.prototype.getFeatures = function() {
  * Instantiates (and returns references to) implementation objects from the bondi specification
  */
 Bondi.prototype.requestFeature = function (successCallback, errorCallback, name){
-    
+
 	var po = new PendingOperation();
-	
-    if (typeof errorCallback != 'function'){
-    	var error = new DeviceAPIError();
+
+	if (typeof errorCallback != 'function'){
+		var error = new DeviceAPIError();
 		error.code = error.INVALID_ARGUMENT_ERROR;
 		error.message = "ErrorCallback has to be defined and a function.";
-    	throw error;
-    	return po;
-    } else if (typeof successCallback != 'function'){
-    	var error = new DeviceAPIError();
+		throw error;
+		return po;
+	} else if (typeof successCallback != 'function'){
+		var error = new DeviceAPIError();
 		error.code = error.INVALID_ARGUMENT_ERROR;
 		error.message = "SuccessCallback has to be defined and a function.";
-    	errorCallback(error);
-    	return po;
-    } 
+		errorCallback(error);
+		return po;
+	} 
 
-    // Including Messaging API
-    if ((name == "http://bondi.omtp.org/api/1.1/messaging.sms.send") ||
-    		(name == "http://bondi.omtp.org/api/1.1/messaging.sms.subscribe") ||
-    		(name == "http://bondi.omtp.org/api/1.1/messaging")){
-    	if (typeof bondi.messaging == "undefined") bondi.messaging = new MessagingManager();
-    	if (typeof bondi.messagingManager == "undefined") bondi.messagingManager = bondi.messaging;
-    	successCallback(bondi.messaging);
-    	return po;
-    } 
+	// Including Messaging API
+	if ((name == "http://bondi.omtp.org/api/1.1/messaging.sms.send") ||
+			(name == "http://bondi.omtp.org/api/1.1/messaging.sms.subscribe") ||
+			(name == "http://bondi.omtp.org/api/1.1/messaging")){
+		if (typeof bondi.messaging == "undefined") bondi.messaging = new MessagingManager();
+		if (typeof bondi.messagingManager == "undefined") bondi.messagingManager = bondi.messaging;
+		successCallback(bondi.messaging);
+		return po;
+	} 
 
-    // Including DeviceStatus API
+	// Including DeviceStatus API
 
-    if ( name == "http://bondi.omtp.org/api/1.1/devicestatus" ){
-    	if (typeof bondi.devicestatus == "undefined") bondi.devicestatus = new DeviceStatusManager();
-    	if (typeof bondi.deviceStatusManager == "undefined") bondi.deviceStatusManager = bondi.devicestatus;
-    	successCallback(bondi.devicestatus);
-    	return po;
-    }
+	if ( name == "http://bondi.omtp.org/api/1.1/devicestatus" ){
+		if (typeof bondi.devicestatus == "undefined") bondi.devicestatus = new DeviceStatusManager();
+		if (typeof bondi.deviceStatusManager == "undefined") bondi.deviceStatusManager = bondi.devicestatus;
+		successCallback(bondi.devicestatus);
+		return po;
+	}
 
-    // Including GeoLocation API
-    if (( name == "http://bondi.omtp.org/api/1.1/geolocation.position") ||
-    (name == "http://bondi.omtp.org/api/1.1/geolocation")){
-    	if (typeof bondi.geolocation == "undefined") bondi.geolocation = new BondiGeolocation();
-    	successCallback(bondi.geolocation);
-    	return po;
-    }
+	// Including GeoLocation API
+	if (( name == "http://bondi.omtp.org/api/1.1/geolocation.position") ||
+			(name == "http://bondi.omtp.org/api/1.1/geolocation")){
+		if (typeof bondi.geolocation == "undefined") bondi.geolocation = new BondiGeolocation();
+		successCallback(bondi.geolocation);
+		return po;
+	}
 
-    // Including CameraManager API
-    if ( name == "http://bondi.omtp.org/api/1.1/camera.access" ||
-    		name == "http://bondi.omtp.org/api/1.1/camera.capture" ||
-    		name == "http://bondi.omtp.org/api/1.1/camera"){
-    	if (typeof bondi.camera == "undefined") bondi.camera = new BondiCamera();
-    	if (typeof bondi.cameraManager == "undefined") bondi.cameraManager = bondi.camera;
+	// Including CameraManager API
+	if ( name == "http://bondi.omtp.org/api/1.1/camera.access" ||
+			name == "http://bondi.omtp.org/api/1.1/camera.capture" ||
+			name == "http://bondi.omtp.org/api/1.1/camera"){
+		if (typeof bondi.camera == "undefined") bondi.camera = new BondiCamera();
+		if (typeof bondi.cameraManager == "undefined") bondi.cameraManager = bondi.camera;
 
-    	successCallback(bondi.camera);
-    	return po;
-    }
+		successCallback(bondi.camera);
+		return po;
+	}
 
-    // Including FileIO API
-    if ( name == "http://bondi.omtp.org/api/1.1/filesystem.read" ||
-    		name == "http://bondi.omtp.org/api/1.1/filesystem.write" ||
-    		name == "http://bondi.omtp.org/api/1.1/filesystem"){
-    	if (typeof bondi.filesystem == "undefined") bondi.filesystem = new FileSystemManager();
-    	if (typeof bondi.fileSystemManager  == "undefined") bondi.fileSystemManager = bondi.filesystem;
+	// Including FileIO API
+	if ( name == "http://bondi.omtp.org/api/1.1/filesystem.read" ||
+			name == "http://bondi.omtp.org/api/1.1/filesystem.write" ||
+			name == "http://bondi.omtp.org/api/1.1/filesystem"){
+		if (typeof bondi.filesystem == "undefined") bondi.filesystem = new FileSystemManager();
+		if (typeof bondi.fileSystemManager  == "undefined") bondi.fileSystemManager = bondi.filesystem;
 
-    	successCallback(bondi.filesystem);
-    	return po;
-    }
+		successCallback(bondi.filesystem);
+		return po;
+	}
 
-    // Feature not found -> error
-    var error = new DeviceAPIError();
-    error.code = error.NOT_FOUND_ERROR;
-    error.message = "feature was not found and is probably not supported";
-    errorCallback(error);
-    return po;
+	// Feature not found -> error
+	var error = new DeviceAPIError();
+	error.code = error.NOT_FOUND_ERROR;
+	error.message = "feature was not found and is probably not supported";
+	errorCallback(error);
+	return po;
 }
 
 /**
@@ -3884,9 +3933,9 @@ BinaryMessage.prototype.clearRecipients = function() {
 
 MessagingManager.prototype.createMMS = function(mmsParams) {
 // raises(DeviceAPIError);
-	
+
 	var mms = new MMS();
-	
+
 	if (typeof mmsParams == "object" && mmsParams != null){
 
 		if (typeof mmsParams.body != "undefined"){
@@ -3915,7 +3964,7 @@ MessagingManager.prototype.createMMS = function(mmsParams) {
 		error.message = "mmsParams must be defined but may be null";
 		throw error;
 	}
-	
+
 	return mms;
 }
 
@@ -3923,7 +3972,7 @@ MessagingManager.prototype.createEmail = function(emailParams) {
 // raises(DeviceAPIError);
 	return new EMail();
 } 
-  
+
 MessagingManager.prototype.sendEmail = function(successCallback, errorCallback, email) {
 // raises(SecurityError, DeviceAPIError, MessagingError);
 	return new PendingOperation();
@@ -3941,13 +3990,13 @@ MessagingManager.prototype.getAvailableEmailAccounts = function(successCallback,
 	// raises(SecurityError, DeviceAPIError);
 	return new PendingOperation();
 }  
- 
+
 MessagingManager.prototype.sendMMS = function(successCallback, errorCallback, mms){
 	var callbackData = {};
 	callbackData.success = successCallback;
 	callbackData.failure = errorCallback;
 	callbackData.mms = mms;
-	
+
 	var key = this.callBacks.push(callbackData) -1;
 	//TODO check if mms is actual mms...
 	for (var i = 0; i < mms.to.length; i++){
@@ -4017,16 +4066,16 @@ function MMS() {
 	this.read = false; // if message was already read
 	this.folder = bondi.messaging.DRAFTS_FOLDER; // reference to folder in which message will be stored (if store == true)
 	// folder must be one of INBOX_FOLDER, OUTBOX_FOLDER, SENT_FOLDER, DRAFTS_FOLDER defined in MessagingManager). 
-	
+
 	this.subject = "newSubject";
 	this.body = "body"; // actual text of message
 	this.to = [];
 	this.slides = []; // MMSSlideArray
 	this.attachments = [];
-	
+
 	// this.multipartMixedBody = ???
 	// this.messageType = ???
-	
+
 }
 
 MMS.prototype.MULTIPART_MIXED = 0;
@@ -4035,15 +4084,15 @@ MMS.prototype.MULTIPART_RELATED = 1;
 
 MMS.prototype.setProperty = function(propertyName, propertyValue){
 	//raises(DeviceAPIError);
-	
-	
+
+
 	if (typeof propertyName == "undefined" || typeof propertyValue == "undefined" || propertyName == null){
 		var error = new DeviceAPIError();
 		error.code = error.INVALID_ARGUMENT_ERROR;
 		error.message = "propertyName and propertyValue have to be defined and PropertyName must not be null";
 		throw error;
 	}
-	
+
 
 	if (propertyName == "body"){
 		this.body = propertyValue;
@@ -4056,9 +4105,9 @@ MMS.prototype.setProperty = function(propertyName, propertyValue){
 			this.to = snippTheRecipients(propertyValue);
 		} else if (propertyName == "attachment"){
 			// TODO handle attachment
-			
-			
-			
+
+
+
 		} else {
 			var error = new DeviceAPIError();
 			error.code = error.INVALID_ARGUMENT_ERROR;
@@ -4076,21 +4125,21 @@ MMS.prototype.setProperty = function(propertyName, propertyValue){
 
 MMS.prototype.getProperty = function(){
 	// raises(DeviceAPIError);
-	
+
 	// TODO attachment: DOMString. File with info about the mms attachment. 
-	
+
 	if (propertyName == "body"){
 		return this.body;
 	} else if (propertyName == "subject"){
 		return this.subject;
 	} else if (propertyName == "to"){
-		
+
 		var reciList = "";
 		for (var i = 0; i < this.to.length; i++){
 			reciList = to[i] + ";";
 		}
 		return reciList;
-		
+
 	} else if (propertyName == "id"){
 		return this.id;
 	} else if (propertyName == "read"){
@@ -4108,7 +4157,7 @@ MMS.prototype.getProperty = function(){
 		error.code = DeviceAPIError.INVALID_ARGUMENT_ERROR;
 		error.message = "propertyName has to be one of these: body, to, id, read, store, folder, dateTime";
 		throw error;
-		
+
 		return null;
 	}
 }
@@ -4130,7 +4179,7 @@ MMS.prototype.getRecipient = function(index) {
 MMS.prototype.appendRecipient = function(phoneNumber) {
 	// raises(DeviceAPIError);
 	// TODO check if phoneNumber is "phoneNumber format" and smaller than maxAvaiableSize for that format
-	
+
 	this.to.push(phoneNumber);
 	return; // void
 }
@@ -4153,7 +4202,7 @@ MMS.prototype.getAttachments = function(){
 MMS.prototype.getAttachment = function(index){
         // raises(DeviceAPIError);
 		//returns DOMString
-	
+
 	if ((index >= this.attachments.length) || (index < 0)){
 		var error = new DeviceAPIError();
 		error.code = error.INVALID_ARGUMENT_ERROR;
@@ -4162,21 +4211,21 @@ MMS.prototype.getAttachment = function(index){
 	} else {
 		return mMessageHandler.getMimegetMimeType(this.attachments[index]) + " " + this.attachments[index];
 	}
-	
+
 }
 
 MMS.prototype.appendAttachment = function(myAttachment){
         //raises(SecurityError, DeviceAPIError);
-	
+
 	if (typeof myAttachment == "undefined" || myAttachment == null){
 		var error = new DeviceAPIError();
 		error.code = error.INVALID_ARGUMENT_ERROR;
 		error.message = "myAttachment has to be defined and must not be null";
 		throw error;
 	}
-	
+
 	this.attachments.push(myAttachment);
-	
+
 }
 
 
@@ -4196,4 +4245,6 @@ function Object(){
 function BinaryMessage() {
 }
 
-*/
+ */
+
+
