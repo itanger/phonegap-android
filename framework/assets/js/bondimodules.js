@@ -492,6 +492,7 @@ BondiGeolocation.prototype.getCurrentPosition = function(successCallback, errorC
 						// location is an positionError instead
 						if (errorCbIsDefined) {
 							errorCallback(location);
+							return;
 						} else {
 							throw location;
 						}
@@ -592,6 +593,7 @@ BondiGeolocation.prototype.getCurrentPosition = function(successCallback, errorC
 						error.message = "Timeout without a location avaiable";
 						if (errorCbIsDefined) {
 							errorCallback(error);
+							return;
 						} else {
 							throw error;
 						}
@@ -604,6 +606,7 @@ BondiGeolocation.prototype.getCurrentPosition = function(successCallback, errorC
 					error.message = "Timeout without a location that was sufficient up to date";
 					if (errorCbIsDefined) {
 						errorCallback(error);
+						return;
 					} else {
 						throw error;
 					}
@@ -4246,5 +4249,4 @@ function BinaryMessage() {
 }
 
  */
-
 
